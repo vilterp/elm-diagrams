@@ -6,5 +6,7 @@ Support for
 - Layout: Position diagrams next to, above, and atop each other
 - Picking: Given a diagram and a point, find what was clicked on
 - Getting coordinates: Given a _tag path_, find what coordinates it was placed at in a diagram.
+- Getting width & height of diagrams
+- Rendering with Elms `Graphics.Collage`
 
 Under construction; many bugs and TODOs.
