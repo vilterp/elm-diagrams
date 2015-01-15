@@ -1,0 +1,13 @@
+{
+    "version": "0.0.1",
+    "summary": "a basic port of Brent Yorgey's diagrams library for Haskell",
+    "repository": "https://github.com/vilterp/elm-diagrams.git",
+    "license": "BSD3",
+    "source-directories": [
+        "."
+    ],
+    "exposed-modules": ["Diagrams"],
+    "dependencies": {
+        "elm-lang/core": "1.1.0 <= v < 2.0.0"
+    }
+}
