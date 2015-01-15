@@ -7,6 +7,6 @@ Support for
 - Picking: Given a diagram and a point, find what was clicked on
 - Getting coordinates: Given a _tag path_, find what coordinates it was placed at in a diagram.
 - Getting width & height of diagrams
-- Rendering with Elms `Graphics.Collage`
+- Rendering with Elm's `Graphics.Collage`
 
 Under construction; many bugs and TODOs.
