@@ -25,7 +25,9 @@ testDia = let path = Path [(-50,-50), (30, 100)] C.defaultLine
           --in showBBox <| vcat [ showBBox <| showOrigin <| circ
           --        , showOrigin <| hcat [rectOrange, rectBlue]
           --        , text ]
-          in showBBox <| showOrigin <| rectOrange `above` (rectBlue `beside` (circ `above` text))
+              stuff = rectOrange `above` (rectBlue `beside` (circ `above` text))
+
+          in showBBox <| showOrigin <| (stuff `above` stuff)
 
 view (w, h) (x, y) = C.collage w h [render testDia]
 

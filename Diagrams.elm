@@ -179,24 +179,21 @@ getCoords' diag path start =
 
 pick : Diagram a -> Point -> M.Maybe (TagPath a)
 pick diag pt =
-    let recurse dia pt tagPath =
-        case dia of
-          Circle r _ -> if magnitude pt <= r then M.Just tagPath else M.Nothing
-          Rect w h _ -> let (x, y) = pt
-                            w2 = w/2
-                            h2 = h/2
-                        in if x < w2 && x > -w2 && y < h2 && y > -h2
-                           then M.Just tagPath
-                           else M.Nothing
-          Path pts _ -> M.Nothing -- TODO implement picking for paths
-          Text _ _ -> let (x, y) = pt
-                          w = width dia
-                          h = height dia
-                     in if x < (w/2) && y < (h/2) then M.Just tagPath
-                                                   else M.Nothing
-          Group dias -> firstJust <| L.map (\d -> recurse d pt tagPath) dias
-          Tag t diagram -> recurse diagram pt (tagPath ++ [t])
-          TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) tagPath
+    let recurse dia pt tagPath = 
+          let handleBox (w, h) = let (x, y) = pt
+                                     w2 = w/2
+                                     h2 = h/2
+                                 in if x < w2 && x > -w2 && y < h2 && y > -h2
+                                    then M.Just tagPath
+                                    else M.Nothing 
+          in case dia of
+               Circle r _ -> if magnitude pt <= r then M.Just tagPath else M.Nothing
+               Rect w h _ -> handleBox (w, h)
+               Path pts _ -> M.Nothing -- TODO implement picking for paths
+               Text _ _ -> handleBox (width dia, height dia)
+               Group dias -> firstJust <| L.map (\d -> recurse d pt tagPath) dias
+               Tag t diagram -> recurse diagram pt (tagPath ++ [t])
+               TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) tagPath
     in recurse diag pt []
 
 -- default styles
