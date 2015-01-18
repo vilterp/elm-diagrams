@@ -10,6 +10,7 @@ import Signal
 import Color
 import Debug
 import Text as T
+import List as L
 
 type Tag = RectOrange
          | RectBlue
@@ -26,8 +27,8 @@ testDia = let path = Path [(-50,-50), (30, 100)] C.defaultLine
           --        , showOrigin <| hcat [rectOrange, rectBlue]
           --        , text ]
               stuff = rectOrange `above` (rectBlue `beside` (circ `above` text))
-
-          in showBBox <| showOrigin <| (stuff `above` stuff)
+              moreStuff = showBBox <| showOrigin <| hcat <| L.intersperse circ (L.repeat 5 rectOrange)
+          in showBBox <| showOrigin <| (stuff `above` stuff `above` moreStuff)
 
 view (w, h) (x, y) = C.collage w h [render testDia]
 
