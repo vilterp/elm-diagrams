@@ -8,6 +8,8 @@ import Maybe as M
 import Transform2D
 import Color
 
+import Debug
+
 type alias Point = (Float, Float)
 
 type alias TagPath a = List a
@@ -49,47 +51,56 @@ textElem str ts = T.fromString str |> T.style ts |> T.centered
 
 -- TODO: implement these in terms of envelope
 
+type Direction = Up | Down | Left | Right
+
+envelope : Diagram a -> Direction -> Float
+envelope dia dir =
+    let handleBox w h = case dir of
+                          Up -> h/2
+                          Down -> h/2
+                          Left -> w/2
+                          Right -> w/2
+    in case dia of
+        Tag _ dia' -> envelope dia' dir
+        Group dias -> L.maximum <| L.map (\d -> envelope d dir) dias
+        TransformD (Scale s) diag -> s * (envelope diag dir)
+        -- TODO: TransformD (Rotate r) dia -> (trig!)
+        TransformD (Translate tx ty) diag -> let env = envelope diag dir
+                                             in case dir of
+                                                  Up -> max 0 <| env + ty
+                                                  Down -> max 0 <| env - ty
+                                                  Right -> max 0 <| env + tx
+                                                  Left -> max 0 <| env - tx
+        Spacer w h -> handleBox w h
+        Text str ts -> let te = textElem str ts
+                           width = te |> E.widthOf |> toFloat
+                           height = te |> E.heightOf |> toFloat
+                       in handleBox width height
+        Path path _ -> let xs = L.map fst path
+                           ys = L.map snd path
+                       in case dir of
+                            Left -> L.minimum xs
+                            Right -> L.maximum xs
+                            Up -> L.maximum ys
+                            Down -> L.minimum ys
+        Rect w h _ -> handleBox w h
+        Circle r _ -> r
+
 width : Diagram a -> Float
-width d = case d of
-            Tag _ dia -> width dia
-            Group dias -> L.maximum <| L.map width dias
-            TransformD (Scale s) dia -> s * (width dia)
-            -- TODO: TransformD (Rotate r) dia -> (trig!)
-            TransformD (Translate _ _) dia -> width dia
-            Spacer w _ -> w
-            Text str ts -> toFloat <| E.widthOf <| textElem str ts
-            Path path _ -> let xs = L.map fst path
-                               maxX = L.maximum xs -- TODO: would be nice to
-                               minX = L.minimum xs -- not iterate twice
-                           in maxX - minX
-            Rect w _ _ -> w
-            Circle r _ -> 2 * r
+width d = (envelope d Left) + (envelope d Right)
 
 height : Diagram a -> Float
-height d = case d of
-             Tag _ dia -> height dia
-             Group dias -> L.maximum <| L.map height dias
-             TransformD (Scale s) dia -> s * (height dia)
-             -- TODO: TransformD (Rotate r) dia -> (trig!)
-             TransformD (Translate _ _) dia -> height dia
-             Spacer _ h -> h
-             Text str ts -> toFloat <| E.heightOf <| textElem str ts
-             Path path _ -> let ys = L.map snd path
-                                maxY = L.maximum <| ys -- TODO: would be nice to
-                                minY = L.minimum <| ys -- not iterate twice
-                            in maxY - minY
-             Rect _ h _ -> h
-             Circle r _ -> 2 * r
+height d = (envelope d Up) + (envelope d Down)
 
 -- positioning
 
 beside : Diagram a -> Diagram a -> Diagram a
-beside a b = let xTrans = (width a)/2 + (width b)/2
+beside a b = let xTrans = (envelope a Right) + (envelope b Left)
              in Group [a, TransformD (Translate xTrans 0) b]
 
 above : Diagram a -> Diagram a -> Diagram a
-above a b = let yTrans = (height a)/2 + (height b)/2
-              in Group [a, TransformD (Translate 0 yTrans) b]
+above a b = let yTrans = (envelope a Down) + (envelope b Up)
+              in Group [a, TransformD (Translate 0 -yTrans) b]
 
 -- TODO: which is on top of which?
 atop : Diagram a -> Diagram a -> Diagram a
@@ -109,17 +120,32 @@ vline h ls = Path [(0, h/2), (0, -h/2)] ls
 hline : Float -> C.LineStyle -> Diagram a
 hline w ls = Path [(-w/2, 0), (w/2, 0)] ls
 
+moveX : Float -> Diagram a -> Diagram a
+moveX x = move (x, 0)
+
+moveY : Float -> Diagram a -> Diagram a
+moveY y = move (0, y)
+
+move : (Float, Float) -> Diagram a -> Diagram a
+move (x, y) dia = TransformD (Translate x y) dia
+
 outlineBox : C.LineStyle -> Diagram a -> Diagram a
 outlineBox ls dia = let lineWidth = ls.width
                         w = 2*lineWidth + width dia
                         h = 2*lineWidth + height dia
                         horLine = hline w ls
                         vertLine = vline h ls
-                    in vcat [
-                              --showOrigin horLine
-                            hcat [vertLine, dia, vertLine]
-                            --, horLine
-                            ]
+                        moveLeft = -(envelope dia Left + lineWidth/2)
+                        moveRight = envelope dia Right + lineWidth/2
+                        moveUp = envelope dia Up + lineWidth/2
+                        moveDown = -(envelope dia Down + lineWidth/2)
+                        -- TODO: should be possible with simple hcat & vcat
+                        vertLineL = move (moveLeft, h/2) vertLine
+                        vertLineR = move (moveRight, h/2) vertLine
+                        horLineT = move (w/2, moveUp) horLine
+                        horLineB = move (w/2, moveDown) horLine
+                    in Group [dia, vertLineL, vertLineR, horLineB, horLineT]
+                    --in hcat [vertLine, dia, vertLine]
 
 -- 2nd order
 
@@ -127,10 +153,10 @@ hcat : List (Diagram a) -> Diagram a
 hcat = L.foldr1 beside
 
 vcat : List (Diagram a) -> Diagram a
-vcat = L.foldr1 above
+vcat = L.foldl1 above
 
 zcat : List (Diagram a) -> Diagram a
-zcat = L.foldr1 atop
+zcat = Group -- lol
 
 -- query
 
@@ -153,7 +179,7 @@ pick : Diagram a -> Point -> M.Maybe (TagPath a)
 pick diag pt =
     let recurse dia pt tagPath =
         case dia of
-          Circle r _ -> if magnitude pt < r then M.Just tagPath else M.Nothing
+          Circle r _ -> if magnitude pt <= r then M.Just tagPath else M.Nothing
           Rect w h _ -> let (x, y) = pt
                             w2 = w/2
                             h2 = h/2
@@ -168,7 +194,7 @@ pick diag pt =
                                                    else M.Nothing
           Group dias -> firstJust <| L.map (\d -> recurse d pt tagPath) dias
           Tag t diagram -> recurse diagram pt (tagPath ++ [t])
-          TransformD trans diagram -> recurse diagram (applyTrans trans pt) tagPath
+          TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) tagPath
     in recurse diag pt []
 
 -- default styles
@@ -191,7 +217,7 @@ applyTrans trans (x, y) =
     Translate tx ty -> (x + tx, y + ty)
 
 magnitude : Point -> Float
-magnitude (x, y) = sqrt <| (x^2) + (x^2)
+magnitude (x, y) = sqrt <| (x^2) + (y^2)
 
 invertTrans : Transform -> Transform
 invertTrans t = case t of
@@ -208,12 +234,12 @@ firstJust l = case l of
 -- debug
 
 showOrigin : Diagram a -> Diagram a
-showOrigin d = let originPoint = Circle 5 (C.Solid Color.red)
+showOrigin d = let originPoint = Circle 3 (C.Solid Color.red)
                in d `atop` originPoint
 
 showBBox : Diagram a -> Diagram a
 showBBox d = let dfl = C.defaultLine
-                 style = { dfl | width <- 1
+                 style = { dfl | width <- 2
                                , color <- Color.red }
              in outlineBox style d
 
@@ -222,17 +248,6 @@ showBBox d = let dfl = C.defaultLine
 -- TODO: envelope
 
 -- TODO: align top, left, bottom, right
-
-type Tag = RectA
-         | RectB
-         | Circ
-
-testDia = let path = Path [(-50,-50), (30, 100)] C.defaultLine
-              rectA = Tag RectA <| Rect 50 50 (C.Solid Color.orange)
-              rectB = Tag RectB <| Rect 50 50 (C.Solid Color.blue)
-              rects = vcat [ rectA , rectB ]
-              circ = Tag Circ <| Circle 20 (C.Solid Color.yellow)
-          in hcat [ rectA, rectB ]
 
 -- TODO triangle
 

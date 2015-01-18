@@ -1,6 +1,6 @@
 {
     "version": "0.0.1",
-    "summary": "An Elm library for creating diagrams, inspired by Brent Yorgey's Diagrams library for Haskell",
+    "summary": "A library for creating diagrams, inspired by the Diagrams library for Haskell",
     "repository": "https://github.com/vilterp/elm-diagrams.git",
     "license": "BSD3",
     "source-directories": [
