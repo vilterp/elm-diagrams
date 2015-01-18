@@ -14,16 +14,18 @@ import Text as T
 type Tag = RectOrange
          | RectBlue
          | Circ
+         | Textt
 
 testDia = let path = Path [(-50,-50), (30, 100)] C.defaultLine
               rectOrange = Tag RectOrange <| Rect 50 70 (C.Solid Color.orange)
               rectBlue = Tag RectBlue <| Rect 70 50 (C.Solid Color.blue)
               rects = vcat [ rectOrange , rectBlue ]
               circ = Tag Circ <| Circle 20 (C.Solid Color.yellow)
-          --in vcat [ showBBox <| showOrigin <| circ
-          --        , showOrigin <| hcat [rectOrange, rectB]
-          --        , Text "Foo" (let ds = T.defaultStyle in {ds | bold <- True}) ]
-          in showBBox <| showOrigin <| rectOrange `above` rectBlue
+              text = Tag Textt <| Text "Foo" (let ds = T.defaultStyle in {ds | bold <- True})
+          --in showBBox <| vcat [ showBBox <| showOrigin <| circ
+          --        , showOrigin <| hcat [rectOrange, rectBlue]
+          --        , text ]
+          in showBBox <| showOrigin <| rectOrange `above` (rectBlue `beside` (circ `above` text))
 
 view (w, h) (x, y) = C.collage w h [render testDia]
 

@@ -139,11 +139,13 @@ outlineBox ls dia = let lineWidth = ls.width
                         moveRight = envelope dia Right + lineWidth/2
                         moveUp = envelope dia Up + lineWidth/2
                         moveDown = -(envelope dia Down + lineWidth/2)
+                        middleH = lerp (moveLeft, moveRight) (0, 1) 0.5
+                        middleV = lerp (moveUp, moveDown) (0, 1) 0.5
                         -- TODO: should be possible with simple hcat & vcat
-                        vertLineL = move (moveLeft, h/2) vertLine
-                        vertLineR = move (moveRight, h/2) vertLine
-                        horLineT = move (w/2, moveUp) horLine
-                        horLineB = move (w/2, moveDown) horLine
+                        vertLineL = move (moveLeft, middleV) vertLine
+                        vertLineR = move (moveRight, middleV) vertLine
+                        horLineT = move (middleH, moveUp) horLine
+                        horLineB = move (middleH, moveDown) horLine
                     in Group [dia, vertLineL, vertLineR, horLineB, horLineT]
                     --in hcat [vertLine, dia, vertLine]
 
@@ -230,6 +232,10 @@ firstJust l = case l of
                 [] -> M.Nothing
                 ((M.Just x)::xs) -> M.Just x
                 (_::xs) -> firstJust xs
+
+-- linear interpolation
+lerp : (Float, Float) -> (Float, Float) -> Float -> Float
+lerp (omin, omax) (imin, imax) input = omin + (omax - omin) * (input - imin) / (imax - imin)
 
 -- debug
 
