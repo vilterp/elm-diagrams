@@ -1,5 +1,31 @@
 module Diagrams where
 
+{-| Diagrams is a library built on top of Graphics.Collage which allows you to
+construct graphics by laying out elements relative to each other. You can also
+"tag" elements in the diagram, and, given coordinates (i.e. of the mouse) find
+which path in the hierarchy of tagged elements the coordinates are over. Lastly,
+given a tag path, you can find the coordinates at which that element was placed.
+
+# Basic Types
+@docs Diagram, TagPath, Point
+
+# Rendering and Debugging
+@docs render, showBBox, showOrigin, outlineBox
+
+# Properties and Querying
+@docs Direction, envelope, width, height, pick, getCoords
+
+# Positioning
+@docs beside, above, atop, hcat, vcat, zcat, moveX, moveY, move
+
+# Shortcuts
+@docs empty, vspace, hspace, vline, hline
+
+# Geometry Utilities
+@docs Transform, applyTrans, invertTrans, magnitude, lerp
+
+-}
+
 import Graphics.Collage as C
 import Graphics.Element as E
 import Text as T
@@ -35,6 +61,8 @@ type Transform
     | Rotate Float
     | Scale Float
 
+-- rendering and debugging
+
 render : Diagram a -> C.Form
 render d = case d of
              Tag _ dia -> render dia
@@ -48,13 +76,41 @@ render d = case d of
              Rect w h fstyle -> C.fill fstyle <| C.rect w h
              Circle r fstyle -> C.fill fstyle <| C.circle r
 
+showOrigin : Diagram a -> Diagram a
+showOrigin d = let originPoint = Circle 3 (C.Solid Color.red)
+               in d `atop` originPoint
+
+showBBox : Diagram a -> Diagram a
+showBBox d = let dfl = C.defaultLine
+                 style = { dfl | width <- 2
+                               , color <- Color.red }
+             in outlineBox style d
+
+-- TODO: factor this logic into a bbox function and a outlined rect function
+outlineBox : C.LineStyle -> Diagram a -> Diagram a
+outlineBox ls dia = let lineWidth = ls.width
+                        w = 2*lineWidth + width dia
+                        h = 2*lineWidth + height dia
+                        horLine = hline w ls
+                        vertLine = vline h ls
+                        moveLeft = -(envelope dia Left + lineWidth/2)
+                        moveRight = envelope dia Right + lineWidth/2
+                        moveUp = envelope dia Up + lineWidth/2
+                        moveDown = -(envelope dia Down + lineWidth/2)
+                        middleH = lerp (moveLeft, moveRight) (0, 1) 0.5
+                        middleV = lerp (moveUp, moveDown) (0, 1) 0.5
+                        -- TODO: should be possible with simple hcat & vcat
+                        vertLineL = move (moveLeft, middleV) vertLine
+                        vertLineR = move (moveRight, middleV) vertLine
+                        horLineT = move (middleH, moveUp) horLine
+                        horLineB = move (middleH, moveDown) horLine
+                    in Group [dia, vertLineL, vertLineR, horLineB, horLineT]
+                    --in hcat [vertLine, dia, vertLine]
+
 textElem : String -> T.Style -> E.Element
 textElem str ts = T.fromString str |> T.style ts |> T.centered
 
-empty : Diagram a
-empty = Spacer 0 0
-
--- TODO: implement these in terms of envelope
+-- properties and querying
 
 type Direction = Up | Down | Left | Right
 
@@ -97,74 +153,6 @@ width d = (envelope d Left) + (envelope d Right)
 height : Diagram a -> Float
 height d = (envelope d Up) + (envelope d Down)
 
--- positioning
-
-beside : Diagram a -> Diagram a -> Diagram a
-beside a b = let xTrans = (envelope a Right) + (envelope b Left)
-             in Group [a, TransformD (Translate xTrans 0) b]
-
-above : Diagram a -> Diagram a -> Diagram a
-above a b = let yTrans = (envelope a Down) + (envelope b Up)
-              in Group [a, TransformD (Translate 0 -yTrans) b]
-
--- TODO: which is on top of which?
-atop : Diagram a -> Diagram a -> Diagram a
-atop a b = Group [a, b]
-
--- shortcuts
-
-vspace : Float -> Diagram a
-vspace h = Spacer 0 h
-
-hspace : Float -> Diagram a
-hspace w = Spacer w 0
-
-vline : Float -> C.LineStyle -> Diagram a
-vline h ls = Path [(0, h/2), (0, -h/2)] ls
-
-hline : Float -> C.LineStyle -> Diagram a
-hline w ls = Path [(-w/2, 0), (w/2, 0)] ls
-
-moveX : Float -> Diagram a -> Diagram a
-moveX x = move (x, 0)
-
-moveY : Float -> Diagram a -> Diagram a
-moveY y = move (0, y)
-
-move : (Float, Float) -> Diagram a -> Diagram a
-move (x, y) dia = TransformD (Translate x y) dia
-
-outlineBox : C.LineStyle -> Diagram a -> Diagram a
-outlineBox ls dia = let lineWidth = ls.width
-                        w = 2*lineWidth + width dia
-                        h = 2*lineWidth + height dia
-                        horLine = hline w ls
-                        vertLine = vline h ls
-                        moveLeft = -(envelope dia Left + lineWidth/2)
-                        moveRight = envelope dia Right + lineWidth/2
-                        moveUp = envelope dia Up + lineWidth/2
-                        moveDown = -(envelope dia Down + lineWidth/2)
-                        middleH = lerp (moveLeft, moveRight) (0, 1) 0.5
-                        middleV = lerp (moveUp, moveDown) (0, 1) 0.5
-                        -- TODO: should be possible with simple hcat & vcat
-                        vertLineL = move (moveLeft, middleV) vertLine
-                        vertLineR = move (moveRight, middleV) vertLine
-                        horLineT = move (middleH, moveUp) horLine
-                        horLineB = move (middleH, moveDown) horLine
-                    in Group [dia, vertLineL, vertLineR, horLineB, horLineT]
-                    --in hcat [vertLine, dia, vertLine]
-
--- 2nd order
-
-hcat : List (Diagram a) -> Diagram a
-hcat = L.foldr beside empty
-
-vcat : List (Diagram a) -> Diagram a
-vcat = L.foldl above empty
-
-zcat : List (Diagram a) -> Diagram a
-zcat = Group -- lol
-
 -- query
 
 getCoords : Diagram a -> TagPath a -> M.Maybe Point
@@ -201,6 +189,55 @@ pick diag pt =
                Tag t diagram -> recurse diagram pt (tagPath ++ [t])
                TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) tagPath
     in recurse diag pt []
+
+-- positioning
+
+beside : Diagram a -> Diagram a -> Diagram a
+beside a b = let xTrans = (envelope a Right) + (envelope b Left)
+             in Group [a, TransformD (Translate xTrans 0) b]
+
+above : Diagram a -> Diagram a -> Diagram a
+above a b = let yTrans = (envelope a Down) + (envelope b Up)
+              in Group [a, TransformD (Translate 0 -yTrans) b]
+
+-- TODO: which is on top of which?
+atop : Diagram a -> Diagram a -> Diagram a
+atop a b = Group [a, b]
+
+hcat : List (Diagram a) -> Diagram a
+hcat = L.foldr beside empty
+
+vcat : List (Diagram a) -> Diagram a
+vcat = L.foldl above empty
+
+zcat : List (Diagram a) -> Diagram a
+zcat = Group -- lol
+
+moveX : Float -> Diagram a -> Diagram a
+moveX x = move (x, 0)
+
+moveY : Float -> Diagram a -> Diagram a
+moveY y = move (0, y)
+
+move : (Float, Float) -> Diagram a -> Diagram a
+move (x, y) dia = TransformD (Translate x y) dia
+
+-- shortcuts
+
+empty : Diagram a
+empty = Spacer 0 0
+
+vspace : Float -> Diagram a
+vspace h = Spacer 0 h
+
+hspace : Float -> Diagram a
+hspace w = Spacer w 0
+
+vline : Float -> C.LineStyle -> Diagram a
+vline h ls = Path [(0, h/2), (0, -h/2)] ls
+
+hline : Float -> C.LineStyle -> Diagram a
+hline w ls = Path [(-w/2, 0), (w/2, 0)] ls
 
 -- default styles
 
@@ -239,18 +276,6 @@ firstJust l = case l of
 -- linear interpolation
 lerp : (Float, Float) -> (Float, Float) -> Float -> Float
 lerp (omin, omax) (imin, imax) input = omin + (omax - omin) * (input - imin) / (imax - imin)
-
--- debug
-
-showOrigin : Diagram a -> Diagram a
-showOrigin d = let originPoint = Circle 3 (C.Solid Color.red)
-               in d `atop` originPoint
-
-showBBox : Diagram a -> Diagram a
-showBBox d = let dfl = C.defaultLine
-                 style = { dfl | width <- 2
-                               , color <- Color.red }
-             in outlineBox style d
 
 -- TODO: bezier
 
