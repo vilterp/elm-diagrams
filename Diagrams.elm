@@ -8,7 +8,9 @@ import Maybe as M
 import Transform2D
 import Color
 
-import Debug
+import Window
+import Signal
+import Mouse
 
 type alias Point = (Float, Float)
 
@@ -48,6 +50,9 @@ render d = case d of
 
 textElem : String -> T.Style -> E.Element
 textElem str ts = T.fromString str |> T.style ts |> T.centered
+
+empty : Diagram a
+empty = Spacer 0 0
 
 -- TODO: implement these in terms of envelope
 
@@ -152,10 +157,10 @@ outlineBox ls dia = let lineWidth = ls.width
 -- 2nd order
 
 hcat : List (Diagram a) -> Diagram a
-hcat = L.foldr1 beside
+hcat = L.foldr beside empty
 
 vcat : List (Diagram a) -> Diagram a
-vcat = L.foldl1 above
+vcat = L.foldl above empty
 
 zcat : List (Diagram a) -> Diagram a
 zcat = Group -- lol
@@ -189,6 +194,7 @@ pick diag pt =
           in case dia of
                Circle r _ -> if magnitude pt <= r then M.Just tagPath else M.Nothing
                Rect w h _ -> handleBox (w, h)
+               Spacer w h -> handleBox (w, h)
                Path pts _ -> M.Nothing -- TODO implement picking for paths
                Text _ _ -> handleBox (width dia, height dia)
                Group dias -> firstJust <| L.map (\d -> recurse d pt tagPath) dias
@@ -246,12 +252,30 @@ showBBox d = let dfl = C.defaultLine
                                , color <- Color.red }
              in outlineBox style d
 
--- TODO: outlined rectangle
 -- TODO: bezier
--- TODO: envelope
 
 -- TODO: align top, left, bottom, right
+--align : Direction -> [Diagram a] -> Diagram a
+--align dir dias = case dir of
+--                   Left -> let widths = L.map width dias
+--                               maxWidth = L.maximum widths
+--                               halfMax = maxWidth/2
+--                           in Group movedDias
+-- put them beside each other?
+-- translation: biggestWidth/2 - selfWidth/2
+
+-- TODO: margin, background (?)
 
 -- TODO triangle
 
 -- TODO: do paths close?
+
+-- outside world utils
+
+toPoint : (Int, Int) -> Point
+toPoint (x, y) = (toFloat x, toFloat y)
+
+floatWindowDims = Signal.map toPoint Window.dimensions
+floatMousePos = Signal.map toPoint Mouse.position
+toCollage (w, h) (x, y) = (x - w/2, h/2 - y)
+collageMousePos = Signal.map2 toCollage floatWindowDims floatMousePos

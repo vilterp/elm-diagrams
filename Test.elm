@@ -32,14 +32,6 @@ testDia = let path = Path [(-50,-50), (30, 100)] C.defaultLine
 
 view (w, h) (x, y) = C.collage w h [render testDia]
 
-toPoint : (Int, Int) -> Point
-toPoint (x, y) = (toFloat x, toFloat y)
-
-floatWindowDims = Signal.map toPoint Window.dimensions
-floatMousePos = Signal.map toPoint Mouse.position
-toCollage (w, h) (x, y) = (x - w/2, h/2 - y)
-collageMousePos = Signal.map2 toCollage floatWindowDims floatMousePos
-
 over mousePt = Debug.watch "over" <| pick testDia (Debug.watch "mouse" mousePt)
 
 overSignal = Signal.map over collageMousePos
