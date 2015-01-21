@@ -10,13 +10,13 @@ given a tag path, you can find the coordinates at which that element was placed.
 @docs Diagram, TagPath, Point
 
 # Rendering and Debugging
-@docs render, showBBox, showOrigin, outlineBox
+@docs render, fullWindowView, fullWindowMain, showBBox, showOrigin, outlineBox
 
 # Properties and Querying
 @docs Direction, envelope, width, height, pick, getCoords
 
 # Positioning
-@docs beside, above, atop, hcat, vcat, zcat, moveX, moveY, move
+@docs beside, above, atop, hcat, vcat, zcat, moveX, moveY, move, alignLeft
 
 # Shortcuts
 @docs empty, vspace, hspace, vline, hline
@@ -114,6 +114,7 @@ textElem str ts = T.fromString str |> T.style ts |> T.centered
 
 type Direction = Up | Down | Left | Right
 
+-- TODO: diagram argument last
 envelope : Diagram a -> Direction -> Float
 envelope dia dir =
     let handleBox w h = case dir of
@@ -208,7 +209,7 @@ hcat : List (Diagram a) -> Diagram a
 hcat = L.foldr beside empty
 
 vcat : List (Diagram a) -> Diagram a
-vcat = L.foldl above empty
+vcat = L.foldr above empty
 
 zcat : List (Diagram a) -> Diagram a
 zcat = Group -- lol
@@ -221,6 +222,13 @@ moveY y = move (0, y)
 
 move : (Float, Float) -> Diagram a -> Diagram a
 move (x, y) dia = TransformD (Translate x y) dia
+
+-- TODO: more aligns
+alignLeft : List (Diagram a) -> Diagram a
+alignLeft dias = let leftEnvelopes = L.map (\d -> envelope d Left) dias
+                     maxLE = L.maximum leftEnvelopes
+                     moved = L.map2 (\dia le -> moveX -(maxLE - le) dia) dias leftEnvelopes
+                 in vcat moved
 
 -- shortcuts
 
@@ -304,3 +312,9 @@ floatWindowDims = Signal.map toPoint Window.dimensions
 floatMousePos = Signal.map toPoint Mouse.position
 toCollage (w, h) (x, y) = (x - w/2, h/2 - y)
 collageMousePos = Signal.map2 toCollage floatWindowDims floatMousePos
+
+fullWindowView : (Int, Int) -> Diagram a -> E.Element
+fullWindowView (w, h) d = C.collage w h [render d]
+
+fullWindowMain : Diagram a -> Signal E.Element
+fullWindowMain dia = Signal.map (\size -> fullWindowView size dia) Window.dimensions

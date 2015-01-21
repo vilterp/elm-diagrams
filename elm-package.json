@@ -1,12 +1,14 @@
 {
-    "version": "0.0.1",
+    "version": "1.0.0",
     "summary": "A library for creating diagrams, inspired by the Diagrams library for Haskell",
     "repository": "https://github.com/vilterp/elm-diagrams.git",
     "license": "BSD3",
     "source-directories": [
         "."
     ],
-    "exposed-modules": ["Diagrams"],
+    "exposed-modules": [
+        "Diagrams"
+    ],
     "dependencies": {
         "elm-lang/core": "1.1.0 <= v < 2.0.0"
     }
