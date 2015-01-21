@@ -70,7 +70,7 @@ render d = case d of
              TransformD (Scale s) dia -> C.scale s <| render dia
              TransformD (Rotate r) dia -> C.rotate r <| render dia
              TransformD (Translate x y) dia -> C.move (x, y) <| render dia
-             Spacer _ _ -> C.rect 0 0 |> C.filled Color.black -- TODO: empty graphic?
+             Spacer _ _ -> C.rect 0 0 |> C.filled Color.black
              Text str ts -> textElem str ts |> C.toForm
              Path path lstyle -> C.traced lstyle path
              Rect w h fstyle -> C.fill fstyle <| C.rect w h
@@ -285,23 +285,7 @@ firstJust l = case l of
 lerp : (Float, Float) -> (Float, Float) -> Float -> Float
 lerp (omin, omax) (imin, imax) input = omin + (omax - omin) * (input - imin) / (imax - imin)
 
--- TODO: bezier
-
--- TODO: align top, left, bottom, right
---align : Direction -> [Diagram a] -> Diagram a
---align dir dias = case dir of
---                   Left -> let widths = L.map width dias
---                               maxWidth = L.maximum widths
---                               halfMax = maxWidth/2
---                           in Group movedDias
--- put them beside each other?
--- translation: biggestWidth/2 - selfWidth/2
-
--- TODO: margin, background (?)
-
 -- TODO triangle
-
--- TODO: do paths close?
 
 -- outside world utils
 
