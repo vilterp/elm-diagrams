@@ -9,7 +9,7 @@ given a tag path, you can find the coordinates at which that element was placed.
 Diagrams are defined as a tree
 
 # Basic Types
-@docs TagPath, Point
+@docs Diagram, TagPath, Point
 
 # Constructors
 @docs circle, rect, path, text, spacer, transform, group, tag
@@ -53,6 +53,9 @@ type alias Point = (Float, Float)
 
 type alias TagPath a = List a
 
+{-| The recursive tree datatype which represents diagrams. NOTE: because
+these may change, use the functions under Constructors to create them,
+not the datatype constructors themselves. -}
 type Diagram a
     -- primitives
     = Circle Float C.FillStyle
