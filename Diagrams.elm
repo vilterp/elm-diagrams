@@ -6,8 +6,16 @@ construct graphics by laying out elements relative to each other. You can also
 which path in the hierarchy of tagged elements the coordinates are over. Lastly,
 given a tag path, you can find the coordinates at which that element was placed.
 
+Diagrams are defined as a tree
+
 # Basic Types
-@docs Diagram, TagPath, Point
+@docs TagPath, Point
+
+# Constructors
+@docs circle, rect, path, text, spacer, transform, group, tag
+
+# Basic Transforms
+@docs move, moveX, moveY, scale, rotate
 
 # Rendering and Debugging
 @docs render, fullWindowView, fullWindowMain, showBBox, showOrigin, outlineBox
@@ -15,14 +23,17 @@ given a tag path, you can find the coordinates at which that element was placed.
 # Properties and Querying
 @docs Direction, envelope, width, height, pick, getCoords
 
-# Positioning
-@docs beside, above, atop, hcat, vcat, zcat, moveX, moveY, move, alignLeft
+# Relative Positioning
+@docs beside, above, atop, hcat, vcat, zcat, alignLeft
 
 # Shortcuts
 @docs empty, vspace, hspace, vline, hline
 
 # Geometry Utilities
 @docs Transform, applyTrans, invertTrans, magnitude, lerp
+
+# Setup Utilities
+@docs fullWindowView, fullWindowMain
 
 -}
 
@@ -61,6 +72,61 @@ type Transform
     | Rotate Float
     | Scale Float
 
+-- constructors
+
+{-| Circle with a given radius and fill, centered on the local origin. -}
+circle : Float -> C.FillStyle -> Diagram a
+circle = Circle
+
+{-| Rectangle with given width, height, and fill, centered on the local origin. -}
+rect : Float -> Float -> C.FillStyle -> Diagram a
+rect = Rect
+
+{-| Unclosed path made of this list of points, laid out relative to the local origin. -}
+path : List Point -> C.LineStyle -> Diagram a
+path = Path
+
+{-| Text with given style, centered vertically and horizontally on the local origin. -}
+text : String -> T.Style -> Diagram a
+text = Text
+
+{-| Spacer with given width and height; renders as transparent. -}
+spacer : Float -> Float -> Diagram a
+spacer = Spacer
+
+{-| Translate, rotate, or scale a given diagram. The transformed diagram has the
+same origin. -}
+transform : Transform -> Diagram a -> Diagram a
+transform = TransformD
+
+{-| Group a list of Diagrams in to one. Elements will be stacked with local origins
+on top of one another. -}
+group : List (Diagram a) -> Diagram a
+group = Group
+
+{-| Return a Tag node with the given diagram as its sole child. Adding this to the 
+diagram tree is useful for picking and getting coordinates. -}
+tag : a -> Diagram a -> Diagram a
+tag = Tag
+
+-- basic transformations
+
+rotate : Float -> Diagram a -> Diagram a
+rotate r d = TransformD (Rotate r) d
+
+{-| Translate given diagram by (x, y). Origin remains the same. -}
+move : (Float, Float) -> Diagram a -> Diagram a
+move (x, y) dia = TransformD (Translate x y) dia
+
+moveX : Float -> Diagram a -> Diagram a
+moveX x = move (x, 0)
+
+moveY : Float -> Diagram a -> Diagram a
+moveY y = move (0, y)
+
+scale : Float -> Diagram a -> Diagram a
+scale s d = TransformD (Scale s) d
+
 -- rendering and debugging
 
 render : Diagram a -> C.Form
@@ -76,10 +142,12 @@ render d = case d of
              Rect w h fstyle -> C.fill fstyle <| C.rect w h
              Circle r fstyle -> C.fill fstyle <| C.circle r
 
+{-| Draw a red dot at (0, 0) in the diagram's local vector space. -}
 showOrigin : Diagram a -> Diagram a
 showOrigin d = let originPoint = Circle 3 (C.Solid Color.red)
                in d `atop` originPoint
 
+{-| Draw a red dot box around a diagram. Implemented in terms of `envelope`. -}
 showBBox : Diagram a -> Diagram a
 showBBox d = let dfl = C.defaultLine
                  style = { dfl | width <- 2
@@ -93,10 +161,10 @@ outlineBox ls dia = let lineWidth = ls.width
                         h = 2*lineWidth + height dia
                         horLine = hline w ls
                         vertLine = vline h ls
-                        moveLeft = -(envelope dia Left + lineWidth/2)
-                        moveRight = envelope dia Right + lineWidth/2
-                        moveUp = envelope dia Up + lineWidth/2
-                        moveDown = -(envelope dia Down + lineWidth/2)
+                        moveLeft = -(envelope Left dia + lineWidth/2)
+                        moveRight = envelope Right dia + lineWidth/2
+                        moveUp = envelope Up dia + lineWidth/2
+                        moveDown = -(envelope Down dia + lineWidth/2)
                         middleH = lerp (moveLeft, moveRight) (0, 1) 0.5
                         middleV = lerp (moveUp, moveDown) (0, 1) 0.5
                         -- TODO: should be possible with simple hcat & vcat
@@ -114,20 +182,24 @@ textElem str ts = T.fromString str |> T.style ts |> T.centered
 
 type Direction = Up | Down | Left | Right
 
--- TODO: diagram argument last
-envelope : Diagram a -> Direction -> Float
-envelope dia dir =
+{-| Given a Diagram and a Direction, return the distance in that direction from the origin
+to the closest line which doesn't intersect the content of the diagram.
+See docs in [Haskell Diagrams][hd].
+
+ [hd][http://projects.haskell.org/diagrams/doc/manual.html#envelopes-and-local-vector-spaces] -}
+envelope : Direction -> Diagram a -> Float
+envelope dir dia =
     let handleBox w h = case dir of
                           Up -> h/2
                           Down -> h/2
                           Left -> w/2
                           Right -> w/2
     in case dia of
-        Tag _ dia' -> envelope dia' dir
-        Group dias -> L.maximum <| L.map (\d -> envelope d dir) dias
-        TransformD (Scale s) diag -> s * (envelope diag dir)
+        Tag _ dia' -> envelope dir dia'
+        Group dias -> L.maximum <| L.map (envelope dir) dias
+        TransformD (Scale s) diag -> s * (envelope dir diag)
         -- TODO: TransformD (Rotate r) dia -> (trig!)
-        TransformD (Translate tx ty) diag -> let env = envelope diag dir
+        TransformD (Translate tx ty) diag -> let env = envelope dir diag
                                              in case dir of
                                                   Up -> max 0 <| env + ty
                                                   Down -> max 0 <| env - ty
@@ -149,10 +221,10 @@ envelope dia dir =
         Circle r _ -> r
 
 width : Diagram a -> Float
-width d = (envelope d Left) + (envelope d Right)
+width d = (envelope Left d) + (envelope Right d)
 
 height : Diagram a -> Float
-height d = (envelope d Up) + (envelope d Down)
+height d = (envelope Up d) + (envelope Down d)
 
 -- query
 
@@ -171,6 +243,9 @@ getCoords' diag path start =
           TransformD trans dia -> M.map (applyTrans <| invertTrans trans) <| getCoords' dia path start
           _ -> M.Nothing
 
+{-| Given a diagram and a point (e.g. of the mouse) in that Diagram's coordinate space,
+descend the diagram tree to the lowest primitive, returning a list of all tag nodes
+the traversal passed through, or M.Nothing if the point was not over any primitives. -}
 pick : Diagram a -> Point -> M.Maybe (TagPath a)
 pick diag pt =
     let recurse dia pt tagPath = 
@@ -193,39 +268,39 @@ pick diag pt =
 
 -- positioning
 
+{-| Place a beside b. The origin of the new diagram will be at the origin of a. -}
 beside : Diagram a -> Diagram a -> Diagram a
-beside a b = let xTrans = (envelope a Right) + (envelope b Left)
+beside a b = let xTrans = (envelope Right a) + (envelope Left b)
              in Group [a, TransformD (Translate xTrans 0) b]
 
+{-| Place a above b. The origin of the new diagram will be at the origin of a. -}
 above : Diagram a -> Diagram a -> Diagram a
-above a b = let yTrans = (envelope a Down) + (envelope b Up)
+above a b = let yTrans = (envelope Down a) + (envelope Up b)
               in Group [a, TransformD (Translate 0 -yTrans) b]
 
 -- TODO: which is on top of which?
 atop : Diagram a -> Diagram a -> Diagram a
 atop a b = Group [a, b]
 
+{-| Place a list of Diagrams next to each other, such that
+their origins are along a horizontal line. The first element in the list will
+be on the left; the last on the right. -}
 hcat : List (Diagram a) -> Diagram a
 hcat = L.foldr beside empty
 
+{-| Place a list of Diagrams next to each other, such that
+their origins are along a vertical line. The first element in the list will
+be on the top; the last on the bottom. -}
 vcat : List (Diagram a) -> Diagram a
 vcat = L.foldr above empty
 
+{-| Place a list of diagrams on top of each other. -}
 zcat : List (Diagram a) -> Diagram a
 zcat = Group -- lol
 
-moveX : Float -> Diagram a -> Diagram a
-moveX x = move (x, 0)
-
-moveY : Float -> Diagram a -> Diagram a
-moveY y = move (0, y)
-
-move : (Float, Float) -> Diagram a -> Diagram a
-move (x, y) dia = TransformD (Translate x y) dia
-
 -- TODO: more aligns
 alignLeft : List (Diagram a) -> Diagram a
-alignLeft dias = let leftEnvelopes = L.map (\d -> envelope d Left) dias
+alignLeft dias = let leftEnvelopes = L.map (envelope Left) dias
                      maxLE = L.maximum leftEnvelopes
                      moved = L.map2 (\dia le -> moveX -(maxLE - le) dia) dias leftEnvelopes
                  in vcat moved
@@ -235,15 +310,19 @@ alignLeft dias = let leftEnvelopes = L.map (\d -> envelope d Left) dias
 empty : Diagram a
 empty = Spacer 0 0
 
+{-| Vertical spacer of height h -}
 vspace : Float -> Diagram a
 vspace h = Spacer 0 h
 
+{-| Horizontal spacer of width w -}
 hspace : Float -> Diagram a
 hspace w = Spacer w 0
 
+{-| Vertical line -}
 vline : Float -> C.LineStyle -> Diagram a
 vline h ls = Path [(0, h/2), (0, -h/2)] ls
 
+{-| Horizontal line -}
 hline : Float -> C.LineStyle -> Diagram a
 hline w ls = Path [(-w/2, 0), (w/2, 0)] ls
 
@@ -282,6 +361,11 @@ firstJust l = case l of
                 (_::xs) -> firstJust xs
 
 -- linear interpolation
+{-| linear interpolation. To map x from interval (imin, imax) to (omin, omax), use:
+
+    lerp (omin, omax) (imin, imax) x
+
+ -}
 lerp : (Float, Float) -> (Float, Float) -> Float -> Float
 lerp (omin, omax) (imin, imax) input = omin + (omax - omin) * (input - imin) / (imax - imin)
 
@@ -294,8 +378,8 @@ toPoint (x, y) = (toFloat x, toFloat y)
 
 floatWindowDims = Signal.map toPoint Window.dimensions
 floatMousePos = Signal.map toPoint Mouse.position
-toCollage (w, h) (x, y) = (x - w/2, h/2 - y)
-collageMousePos = Signal.map2 toCollage floatWindowDims floatMousePos
+toCollageCoords (w, h) (x, y) = (x - w/2, h/2 - y)
+collageMousePos = Signal.map2 toCollageCoords floatWindowDims floatMousePos
 
 fullWindowView : (Int, Int) -> Diagram a -> E.Element
 fullWindowView (w, h) d = C.collage w h [render d]
