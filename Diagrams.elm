@@ -4,14 +4,16 @@ module Diagrams where
 construct graphics by laying out elements relative to each other.
 
 A Diagram is represented as a tree of elements, where the leaves are primitive
-shapes like rectangles and circles, and the nodes are transformations like translation,
-rotation, and scaling. Group nodes have multiple children which are transformed
+shapes like rectangles, circles, paths and text and the nodes are transformations
+like translation, rotation, and scaling.
+
+There are also `Group` nodes have multiple children which are transformed
 simultaneously by the transformations above them.
 
-There are also "tag" nodes which just hold a child diagram and a value of type a;
+Lastly, there are `Tag` nodes which just hold a child diagram and a value of type a;
 these exist solely to identify a subdiagram, for the purposes of (a) specifying a tag
-path and getting the coordinates it was positioned at (the getCoords function) or
-(b) given a point, find what subtree it is over (the pick function).
+path and getting the coordinates it was positioned at (the `getCoords` function) or
+(b) given a point, find what subtree it is over (the `pick` function).
 
 Using signals to compose pick with mouse clicks, you can create a signal of
 clicked-on elements. Folding this with the application state and re-rendering, you
@@ -119,7 +121,7 @@ transform : Transform -> Diagram a -> Diagram a
 transform = TransformD
 
 {-| Group a list of Diagrams in to one. Elements will be stacked with local origins
-on top of one another. This is the same as zcat. -}
+on top of one another. This is the same as `zcat`. -}
 group : List (Diagram a) -> Diagram a
 group = Group
 
@@ -162,7 +164,7 @@ render d = case d of
              Rect w h fstyle -> C.fill fstyle <| C.rect w h
              Circle r fstyle -> C.fill fstyle <| C.circle r
 
-{-| Draw a red dot at (0, 0) in the diagram's local vector space. -}
+{-| Draw a red dot at `(0, 0)` in the diagram's local vector space. -}
 showOrigin : Diagram a -> Diagram a
 showOrigin d = let originPoint = Circle 3 (C.Solid Color.red)
                in originPoint `atop` d
@@ -323,13 +325,13 @@ vcat = L.foldr above empty
 
 {-| Place a list of diagrams on top of each other, with their origin points
 stacked on the "out of page" axis. The first diagram in the list is on top.
-This is the same as the group function. -}
+This is the same as the `group`. -}
 zcat : List (Diagram a) -> Diagram a
 zcat = Group -- lol
 
 -- TODO: more aligns
 
-{-| Stack diagrams vertically (as with vcat), such that their left edges align.
+{-| Stack diagrams vertically (as with `vcat`), such that their left edges align.
 The origin of the resulting diagram is the origin of the first diagram. -}
 alignLeft : List (Diagram a) -> Diagram a
 alignLeft dias = let leftEnvelopes = L.map (envelope Left) dias
