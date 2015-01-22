@@ -26,7 +26,7 @@ testDia = let path = Path [(-50,-50), (30, 100)] C.defaultLine
           --in showBBox <| vcat [ showBBox <| showOrigin <| circ
           --        , showOrigin <| hcat [rectOrange, rectBlue]
           --        , text ]
-              stuff = rectOrange `above` (rectBlue `beside` (circ `above` text))
+              stuff = circ `atop` (rectOrange `above` (rectBlue `beside` (circ `above` text)))
               moreStuff = showBBox <| showOrigin <| hcat <| L.intersperse circ (L.repeat 5 rectOrange)
           in showBBox <| showOrigin <| (stuff `above` stuff `above` moreStuff)
 
@@ -36,4 +36,5 @@ over mousePt = Debug.watch "over" <| pick testDia (Debug.watch "mouse" mousePt)
 
 overSignal = Signal.map over collageMousePos
 
-main = Signal.map2 view Window.dimensions Mouse.position
+main = fullWindowMain <| showOrigin <| showBBox <| vcat [showOrigin <| showBBox <| circle 10 (C.Solid Color.orange),
+                                                         showOrigin <| showBBox <| rect 50 50 (C.Solid Color.blue)]

@@ -1,12 +1,28 @@
 module Diagrams where
 
 {-| Diagrams is a library built on top of Graphics.Collage which allows you to
-construct graphics by laying out elements relative to each other. You can also
-"tag" elements in the diagram, and, given coordinates (i.e. of the mouse) find
-which path in the hierarchy of tagged elements the coordinates are over. Lastly,
-given a tag path, you can find the coordinates at which that element was placed.
+construct graphics by laying out elements relative to each other.
 
-Diagrams are defined as a tree
+A Diagram is represented as a tree of elements, where the leaves are primitive
+shapes like rectangles and circles, and the nodes are transformations like translation,
+rotation, and scaling. Group nodes have multiple children which are transformed
+simultaneously by the transformations above them.
+
+There are also "tag" nodes which just hold a child diagram and a value of type a;
+these exist solely to identify a subdiagram, for the purposes of (a) specifying a tag
+path and getting the coordinates it was positioned at (the getCoords function) or
+(b) given a point, find what subtree it is over (the pick function).
+
+Using signals to compose pick with mouse clicks, you can create a signal of
+clicked-on elements. Folding this with the application state and re-rendering, you
+can make an interface which is responsive to the mouse without channels.
+
+The library is based on the excellent [Diagrams][hd] library for Haskell, which
+has a nice [visual tutorial][hd-tut]. Things are named slightly differently, and this
+version is missing a lot of features and generality.
+
+ [hd]: http://projects.haskell.org/diagrams/
+ [hd-tut]: http://projects.haskell.org/diagrams/doc/quickstart.html
 
 # Basic Types
 @docs Diagram, TagPath, Point
@@ -103,7 +119,7 @@ transform : Transform -> Diagram a -> Diagram a
 transform = TransformD
 
 {-| Group a list of Diagrams in to one. Elements will be stacked with local origins
-on top of one another. -}
+on top of one another. This is the same as zcat. -}
 group : List (Diagram a) -> Diagram a
 group = Group
 
@@ -117,7 +133,7 @@ tag = Tag
 rotate : Float -> Diagram a -> Diagram a
 rotate r d = TransformD (Rotate r) d
 
-{-| Translate given diagram by (x, y). Origin remains the same. -}
+{-| Translate given diagram by (x, y). Origin of resulting diagram is the same. -}
 move : (Float, Float) -> Diagram a -> Diagram a
 move (x, y) dia = TransformD (Translate x y) dia
 
@@ -135,7 +151,8 @@ scale s d = TransformD (Scale s) d
 render : Diagram a -> C.Form
 render d = case d of
              Tag _ dia -> render dia
-             Group dias -> C.group <| L.map render dias
+             Group dias -> C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
+                                                                     -- have to reverse tho
              TransformD (Scale s) dia -> C.scale s <| render dia
              TransformD (Rotate r) dia -> C.rotate r <| render dia
              TransformD (Translate x y) dia -> C.move (x, y) <| render dia
@@ -148,7 +165,7 @@ render d = case d of
 {-| Draw a red dot at (0, 0) in the diagram's local vector space. -}
 showOrigin : Diagram a -> Diagram a
 showOrigin d = let originPoint = Circle 3 (C.Solid Color.red)
-               in d `atop` originPoint
+               in originPoint `atop` d
 
 {-| Draw a red dot box around a diagram. Implemented in terms of `envelope`. -}
 showBBox : Diagram a -> Diagram a
@@ -158,6 +175,8 @@ showBBox d = let dfl = C.defaultLine
              in outlineBox style d
 
 -- TODO: factor this logic into a bbox function and a outlined rect function
+
+{-| Draw a box around the given diagram (uses envelope) -}
 outlineBox : C.LineStyle -> Diagram a -> Diagram a
 outlineBox ls dia = let lineWidth = ls.width
                         w = 2*lineWidth + width dia
@@ -187,9 +206,9 @@ type Direction = Up | Down | Left | Right
 
 {-| Given a Diagram and a Direction, return the distance in that direction from the origin
 to the closest line which doesn't intersect the content of the diagram.
-See docs in [Haskell Diagrams][hd].
 
- [hd][http://projects.haskell.org/diagrams/doc/manual.html#envelopes-and-local-vector-spaces] -}
+ [hd]: http://projects.haskell.org/diagrams/doc/manual.html#envelopes-and-local-vector-spaces
+-}
 envelope : Direction -> Diagram a -> Float
 envelope dir dia =
     let handleBox w h = case dir of
@@ -271,17 +290,22 @@ pick diag pt =
 
 -- positioning
 
-{-| Place a beside b. The origin of the new diagram will be at the origin of a. -}
+{-| Given two diagrams a and b, place b to the right of a, such that their origins
+are on a horizontal line and their envelopes touch. The origin of the new diagram
+is the origin of a. -}
 beside : Diagram a -> Diagram a -> Diagram a
 beside a b = let xTrans = (envelope Right a) + (envelope Left b)
              in Group [a, TransformD (Translate xTrans 0) b]
 
-{-| Place a above b. The origin of the new diagram will be at the origin of a. -}
+{-| Given two diagrams a and b, place b to the right of a, such that their origins
+are on a horizontal line and their envelopes touch. The origin of the new diagram
+is the origin of a. -}
 above : Diagram a -> Diagram a -> Diagram a
 above a b = let yTrans = (envelope Down a) + (envelope Up b)
               in Group [a, TransformD (Translate 0 -yTrans) b]
 
--- TODO: which is on top of which?
+{-| Given two diagrams a and b, stack a on top of b in the "out of page" axis,
+so a occlodes b. -}
 atop : Diagram a -> Diagram a -> Diagram a
 atop a b = Group [a, b]
 
@@ -297,11 +321,16 @@ be on the top; the last on the bottom. -}
 vcat : List (Diagram a) -> Diagram a
 vcat = L.foldr above empty
 
-{-| Place a list of diagrams on top of each other. -}
+{-| Place a list of diagrams on top of each other, with their origin points
+stacked on the "out of page" axis. The first diagram in the list is on top.
+This is the same as the group function. -}
 zcat : List (Diagram a) -> Diagram a
 zcat = Group -- lol
 
 -- TODO: more aligns
+
+{-| Stack diagrams vertically (as with vcat), such that their left edges align.
+The origin of the resulting diagram is the origin of the first diagram. -}
 alignLeft : List (Diagram a) -> Diagram a
 alignLeft dias = let leftEnvelopes = L.map (envelope Left) dias
                      maxLE = L.maximum leftEnvelopes
@@ -368,7 +397,7 @@ firstJust l = case l of
 
     lerp (omin, omax) (imin, imax) x
 
- -}
+-}
 lerp : (Float, Float) -> (Float, Float) -> Float -> Float
 lerp (omin, omax) (imin, imax) input = omin + (omax - omin) * (input - imin) / (imax - imin)
 
@@ -387,5 +416,9 @@ collageMousePos = Signal.map2 toCollageCoords floatWindowDims floatMousePos
 fullWindowView : (Int, Int) -> Diagram a -> E.Element
 fullWindowView (w, h) d = C.collage w h [render d]
 
+{-| The easiest way to get a diagram on the screen:
+
+    main = fullWindowMain (rect 10 10 (C.Solid Color.orange))
+-}
 fullWindowMain : Diagram a -> Signal E.Element
 fullWindowMain dia = Signal.map (\size -> fullWindowView size dia) Window.dimensions
