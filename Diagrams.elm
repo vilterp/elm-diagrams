@@ -1,6 +1,6 @@
 module Diagrams where
 
-{-| Diagrams is a library built on top of Graphics.Collage which allows you to
+{-| Diagrams is a library built on top of `Graphics.Collage` which allows you to
 construct graphics by laying out elements relative to each other.
 
 A Diagram is represented as a tree of elements, where the leaves are primitive
