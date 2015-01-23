@@ -7,7 +7,7 @@ A Diagram is represented as a tree of elements, where the leaves are primitive
 shapes like rectangles, circles, paths and text and the nodes are transformations
 like translation, rotation, and scaling.
 
-There are also `Group` nodes have multiple children which are transformed
+There are also `Group` nodes. These have multiple children which are transformed
 simultaneously by the transformations above them.
 
 Lastly, there are `Tag` nodes which just hold a child diagram and a value of type a;
@@ -15,7 +15,7 @@ these exist solely to identify a subdiagram, for the purposes of (a) specifying 
 path and getting the coordinates it was positioned at (the `getCoords` function) or
 (b) given a point, find what subtree it is over (the `pick` function).
 
-Using signals to compose pick with mouse clicks, you can create a signal of
+Using signals to compose `pick` with mouse clicks, you can create a signal of
 clicked-on elements. Folding this with the application state and re-rendering, you
 can make an interface which is responsive to the mouse without channels.
 
@@ -178,7 +178,7 @@ showBBox d = let dfl = C.defaultLine
 
 -- TODO: factor this logic into a bbox function and a outlined rect function
 
-{-| Draw a box around the given diagram (uses envelope) -}
+{-| Draw a box around the given diagram (uses `envelope`) -}
 outlineBox : C.LineStyle -> Diagram a -> Diagram a
 outlineBox ls dia = let lineWidth = ls.width
                         w = 2*lineWidth + width dia
@@ -269,7 +269,7 @@ getCoords' diag path start =
 
 {-| Given a diagram and a point (e.g. of the mouse) in that Diagram's coordinate space,
 descend the diagram tree to the lowest primitive, returning a list of all tag nodes
-the traversal passed through, or M.Nothing if the point was not over any primitives. -}
+the traversal passed through, or `Nothing` if the point was not over any primitives. -}
 pick : Diagram a -> Point -> M.Maybe (TagPath a)
 pick diag pt =
     let recurse dia pt tagPath = 
