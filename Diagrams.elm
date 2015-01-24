@@ -44,7 +44,7 @@ version is missing a lot of features and generality.
 @docs Direction, envelope, width, height, pick, getCoords
 
 # Relative Positioning
-@docs beside, above, atop, hcat, vcat, zcat, alignLeft
+@docs beside, above, atop, hcat, vcat, zcat, alignLeft, alignCenter
 
 # Shortcuts
 @docs empty, vspace, hspace, vline, hline
