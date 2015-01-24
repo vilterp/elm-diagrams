@@ -132,6 +132,7 @@ diagram tree is useful for picking and getting coordinates. -}
 tag : a -> Diagram a -> Diagram a
 tag = Tag
 
+{-| equilateral triangle with given side length & line style -}
 eqTriangle : Float -> C.LineStyle -> Diagram a
 eqTriangle sideLength ls = let height = sideLength * sin (3*pi/2)
                                bl = (-sideLength/2, height/3)
@@ -348,6 +349,7 @@ alignLeft dias = let leftEnvelopes = L.map (envelope Left) dias
                      moved = L.map2 (\dia le -> moveX -(maxLE - le) dia) dias leftEnvelopes
                  in vcat moved
 
+{-| translate a diagram such that the envelope in all directions is equal -}
 alignCenter : Diagram a -> Diagram a
 alignCenter dia = let left = Debug.watch "left" <| envelope Left dia
                       right = Debug.watch "right" <| envelope Right dia
