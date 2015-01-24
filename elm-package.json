@@ -1,5 +1,5 @@
 {
-    "version": "2.0.4",
+    "version": "2.1.0",
     "summary": "A library for creating diagrams, inspired by the Diagrams library for Haskell",
     "repository": "https://github.com/vilterp/elm-diagrams.git",
     "license": "BSD3",
