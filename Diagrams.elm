@@ -10,6 +10,8 @@ like translation, rotation, and scaling.
 There are also `Group` nodes. These have multiple children which are transformed
 simultaneously by the transformations above them.
 
+[Sierpinski triangle example](https://gist.github.com/vilterp/9966fd18de8d9b282ade)
+
 Lastly, there are `Tag` nodes which just hold a child diagram and a value of type a;
 these exist solely to identify a subdiagram, for the purposes of (a) specifying a tag
 path and getting the coordinates it was positioned at (the `getCoords` function) or
