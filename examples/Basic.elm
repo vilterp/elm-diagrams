@@ -36,5 +36,4 @@ over mousePt = Debug.watch "over" <| pick testDia (Debug.watch "mouse" mousePt)
 
 overSignal = Signal.map over collageMousePos
 
-main = fullWindowMain <| showOrigin <| showBBox <| vcat [showOrigin <| showBBox <| circle 10 (C.Solid Color.orange),
-                                                         showOrigin <| showBBox <| rect 50 50 (C.Solid Color.blue)]
+main = fullWindowMain testDia

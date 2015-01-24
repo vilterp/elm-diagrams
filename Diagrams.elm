@@ -67,6 +67,8 @@ import Window
 import Signal
 import Mouse
 
+import Debug
+
 type alias Point = (Float, Float)
 
 type alias TagPath a = List a
@@ -129,6 +131,13 @@ group = Group
 diagram tree is useful for picking and getting coordinates. -}
 tag : a -> Diagram a -> Diagram a
 tag = Tag
+
+eqTriangle : Float -> C.LineStyle -> Diagram a
+eqTriangle sideLength ls = let height = sideLength * sin (3*pi/2)
+                               bl = (-sideLength/2, height/3)
+                               br = (sideLength/2, height/3)
+                               top = (0, -height/2)
+                           in path [bl, br, top, bl] ls
 
 -- basic transformations
 
@@ -237,10 +246,10 @@ envelope dir dia =
         Path path _ -> let xs = L.map fst path
                            ys = L.map snd path
                        in case dir of
-                            Left -> L.minimum xs
+                            Left -> -(L.minimum xs)
                             Right -> L.maximum xs
                             Up -> L.maximum ys
-                            Down -> L.minimum ys
+                            Down -> -(L.minimum ys)
         Rect w h _ -> handleBox w h
         Circle r _ -> r
 
@@ -338,6 +347,15 @@ alignLeft dias = let leftEnvelopes = L.map (envelope Left) dias
                      maxLE = L.maximum leftEnvelopes
                      moved = L.map2 (\dia le -> moveX -(maxLE - le) dia) dias leftEnvelopes
                  in vcat moved
+
+alignCenter : Diagram a -> Diagram a
+alignCenter dia = let left = Debug.watch "left" <| envelope Left dia
+                      right = Debug.watch "right" <| envelope Right dia
+                      xTrans = Debug.watch "xtrans" <| (right - left)/2
+                      up = envelope Up dia
+                      down = envelope Down dia
+                      yTrans = (down-up)/2
+                  in move (-xTrans, yTrans) dia
 
 -- shortcuts
 
