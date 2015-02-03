@@ -84,7 +84,7 @@ type Diagram a
     = Circle Float C.FillStyle
     | Rect Float Float C.FillStyle
     | Path (List Point) C.LineStyle
-    | Text String T.Style
+    | Text String T.Style (Float, Float)
     | Spacer Float Float
     -- transformation
     | TransformD Transform (Diagram a)
@@ -116,7 +116,10 @@ path = Path
 
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
 text : String -> T.Style -> Diagram a
-text = Text
+text txt style = let te = textElem txt style
+                     w = toFloat <| E.widthOf te
+                     h = toFloat <| E.heightOf te
+                 in Text txt style (w, h)
 
 {-| Spacer with given width and height; renders as transparent. -}
 spacer : Float -> Float -> Diagram a
@@ -174,7 +177,7 @@ render d = case d of
              TransformD (Rotate r) dia -> C.rotate r <| render dia
              TransformD (Translate x y) dia -> C.move (x, y) <| render dia
              Spacer _ _ -> C.rect 0 0 |> C.filled Color.black
-             Text str ts -> textElem str ts |> C.toForm
+             Text str ts _ -> textElem str ts |> C.toForm
              Path path lstyle -> C.traced lstyle path
              Rect w h fstyle -> C.fill fstyle <| C.rect w h
              Circle r fstyle -> C.fill fstyle <| C.circle r
@@ -255,10 +258,7 @@ envelope dir dia =
                                                   Right -> max 0 <| env + tx
                                                   Left -> max 0 <| env - tx
         Spacer w h -> handleBox w h
-        Text str ts -> let te = textElem str ts
-                           width = te |> E.widthOf |> toFloat
-                           height = te |> E.heightOf |> toFloat
-                       in handleBox width height
+        Text str ts (w, h) -> handleBox w h
         Path path _ -> let xs = L.map fst path
                            ys = L.map snd path
                        in case dir of
@@ -304,18 +304,18 @@ descend the diagram tree to the lowest primitive, returning (TODO: rewrite) -}
 pick : Diagram a -> Point -> M.Maybe (PickPath a)
 pick diag pt =
     let recurse dia pt pickPath = 
-          let handleBox (w, h) = let (x, y) = pt
-                                     w2 = w/2
-                                     h2 = h/2
-                                 in if x < w2 && x > -w2 && y < h2 && y > -h2
-                                    then M.Just pickPath
-                                    else M.Nothing 
+          let handleBox w h = let (x, y) = pt
+                                  w2 = w/2
+                                  h2 = h/2
+                              in if x < w2 && x > -w2 && y < h2 && y > -h2
+                                 then M.Just pickPath
+                                 else M.Nothing 
           in case dia of
                Circle r _ -> if magnitude pt <= r then M.Just pickPath else M.Nothing
-               Rect w h _ -> handleBox (w, h)
-               Spacer w h -> handleBox (w, h)
+               Rect w h _ -> handleBox w h
+               Spacer w h -> handleBox w h
                Path pts _ -> M.Nothing -- TODO implement picking for paths
-               Text _ _ -> handleBox (width dia, height dia)
+               Text _ _ (w, h) -> handleBox w h
                Group dias -> firstJust <| L.map (\d -> recurse d pt pickPath) dias
                Tag t diagram -> recurse diagram pt ((t, pt) :: pickPath)
                TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) pickPath
