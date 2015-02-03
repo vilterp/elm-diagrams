@@ -61,6 +61,7 @@ import Graphics.Collage as C
 import Graphics.Element as E
 import Text as T
 import List as L
+import List ((::))
 import Maybe as M
 import Transform2D
 import Color
@@ -98,6 +99,8 @@ type Transform
     | Scale Float
 
 -- constructors
+
+-- TODO: shouldn't fill style come first in these? I dunno
 
 {-| Circle with a given radius and fill, centered on the local origin. -}
 circle : Float -> C.FillStyle -> Diagram a
@@ -190,26 +193,36 @@ showBBox d = let dfl = C.defaultLine
 
 -- TODO: factor this logic into a bbox function and a outlined rect function
 
+type alias BBox = { up : Float, down : Float, left : Float, right : Float }
+type alias TransWHBox = { translate : (Float, Float), width : Float, height : Float }
+
+bbox2transwh : BBox -> TransWHBox
+bbox2transwh bbox = { translate = ((bbox.right - bbox.left)/2, (bbox.up - bbox.down)/2),
+                      width = bbox.right + bbox.left,
+                      height = bbox.up + bbox.down }
+
+background : C.FillStyle -> Diagram a -> Diagram a
+background fs dia = let transWH = bbox2transwh <| boundingBox dia
+                        bg = move transWH.translate <| rect transWH.width transWH.height fs
+                    in zcat [dia, bg]
+
+boundingBox : Diagram a -> BBox
+boundingBox dia = { up = envelope Up dia
+                  , down = envelope Down dia
+                  , left = envelope Left dia
+                  , right = envelope Right dia
+                  }
+
 {-| Draw a box around the given diagram (uses `envelope`) -}
 outlineBox : C.LineStyle -> Diagram a -> Diagram a
 outlineBox ls dia = let lineWidth = ls.width
-                        w = 2*lineWidth + width dia
-                        h = 2*lineWidth + height dia
-                        horLine = hline w ls
-                        vertLine = vline h ls
-                        moveLeft = -(envelope Left dia + lineWidth/2)
-                        moveRight = envelope Right dia + lineWidth/2
-                        moveUp = envelope Up dia + lineWidth/2
-                        moveDown = -(envelope Down dia + lineWidth/2)
-                        middleH = lerp (moveLeft, moveRight) (0, 1) 0.5
-                        middleV = lerp (moveUp, moveDown) (0, 1) 0.5
-                        -- TODO: should be possible with simple hcat & vcat
-                        vertLineL = move (moveLeft, middleV) vertLine
-                        vertLineR = move (moveRight, middleV) vertLine
-                        horLineT = move (middleH, moveUp) horLine
-                        horLineB = move (middleH, moveDown) horLine
-                    in Group [dia, vertLineL, vertLineR, horLineB, horLineT]
-                    --in hcat [vertLine, dia, vertLine]
+                        halfLw = lineWidth/2
+                        bbox = boundingBox dia
+                        tl = (-bbox.left - halfLw, bbox.up + halfLw)
+                        tr = (bbox.right + halfLw, bbox.up + halfLw)
+                        bl = (-bbox.left - halfLw, -bbox.down - halfLw)
+                        br = (bbox.right + halfLw, -bbox.down - halfLw)
+                    in zcat [dia, path [tl, tr, br, bl, tl] ls]
 
 textElem : String -> T.Style -> E.Element
 textElem str ts = T.fromString str |> T.style ts |> T.centered
@@ -273,33 +286,39 @@ getCoords' diag path start =
       [] -> M.Just start
       (x::xs) -> 
         case diag of
-          Tag x dia -> getCoords' dia xs start
-          Tag _ _ -> M.Nothing
+          Tag t dia -> if x == t then getCoords' dia xs start else M.Nothing
           Group dias -> firstJust <| L.map (\d -> getCoords' d path start) dias
-          TransformD trans dia -> M.map (applyTrans <| invertTrans trans) <| getCoords' dia path start
+          TransformD trans dia -> getCoords' dia path (applyTrans trans start)
           _ -> M.Nothing
 
+-- BUG: not properly distinguishing between Just [] and Nothing
+-- TODO: return List (Point, a) instead? so you know how far the mouse was offset from
+-- each element in the tag path?
+
+{-| furthest down tree first -}
+type alias PickPath a = List (a, Point)
+
 {-| Given a diagram and a point (e.g. of the mouse) in that Diagram's coordinate space,
-descend the diagram tree to the lowest primitive, returning a list of all tag nodes
-the traversal passed through, or `Nothing` if the point was not over any primitives. -}
-pick : Diagram a -> Point -> M.Maybe (TagPath a)
+descend the diagram tree to the lowest primitive, returning (TODO: rewrite) -}
+-- TODO: what is difference between returning Maybe & and empty list??
+pick : Diagram a -> Point -> M.Maybe (PickPath a)
 pick diag pt =
-    let recurse dia pt tagPath = 
+    let recurse dia pt pickPath = 
           let handleBox (w, h) = let (x, y) = pt
                                      w2 = w/2
                                      h2 = h/2
                                  in if x < w2 && x > -w2 && y < h2 && y > -h2
-                                    then M.Just tagPath
+                                    then M.Just pickPath
                                     else M.Nothing 
           in case dia of
-               Circle r _ -> if magnitude pt <= r then M.Just tagPath else M.Nothing
+               Circle r _ -> if magnitude pt <= r then M.Just pickPath else M.Nothing
                Rect w h _ -> handleBox (w, h)
                Spacer w h -> handleBox (w, h)
                Path pts _ -> M.Nothing -- TODO implement picking for paths
                Text _ _ -> handleBox (width dia, height dia)
-               Group dias -> firstJust <| L.map (\d -> recurse d pt tagPath) dias
-               Tag t diagram -> recurse diagram pt (tagPath ++ [t])
-               TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) tagPath
+               Group dias -> firstJust <| L.map (\d -> recurse d pt pickPath) dias
+               Tag t diagram -> recurse diagram pt ((t, pt) :: pickPath)
+               TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) pickPath
     in recurse diag pt []
 
 -- positioning
@@ -353,9 +372,9 @@ alignLeft dias = let leftEnvelopes = L.map (envelope Left) dias
 
 {-| translate a diagram such that the envelope in all directions is equal -}
 alignCenter : Diagram a -> Diagram a
-alignCenter dia = let left = Debug.watch "left" <| envelope Left dia
-                      right = Debug.watch "right" <| envelope Right dia
-                      xTrans = Debug.watch "xtrans" <| (right - left)/2
+alignCenter dia = let left = envelope Left dia
+                      right = envelope Right dia
+                      xTrans = (right - left)/2
                       up = envelope Up dia
                       down = envelope Down dia
                       yTrans = (down-up)/2
@@ -381,6 +400,20 @@ vline h ls = Path [(0, h/2), (0, -h/2)] ls
 {-| Horizontal line -}
 hline : Float -> C.LineStyle -> Diagram a
 hline w ls = Path [(-w/2, 0), (w/2, 0)] ls
+
+-- TODO: factor out version that lets you specify all directions
+pad : Float -> Diagram a -> Diagram a
+pad pd dia = padAll pd pd pd pd dia
+
+padAll u d l r dia =
+    let bbox = boundingBox dia
+        paddedBbox = { up = bbox.up + u
+                     , down = bbox.down + d
+                     , left = bbox.left + l
+                     , right = bbox.right + r }
+        transWH = bbox2transwh paddedBbox
+        padder = move (transWH.translate) <| spacer (transWH.width) (transWH.height)
+    in zcat [dia, padder]
 
 -- default styles
 
