@@ -1,4 +1,4 @@
-module Test where
+module Basic where
 
 import Diagrams (..)
 import Window
