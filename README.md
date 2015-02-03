@@ -14,4 +14,4 @@ Under construction; many bugs and TODOs. File them under GitHub Issues.
 
 ### Examples
 
-There are a few examples under `examples/`. To run them, run `elm-reactor` in the root directory of the repository (not the `examples` directory — if you run it there, the Reactor will not find the library code in `Diagrams.elm`).
+There are a few examples under `examples/`. To run them, run `elm-reactor` in the root directory of the repository (not the `examples` directory — if you run it there, the Reactor will not find the library code in `Diagrams.elm`). Open them in debug mode (click wrench or append "`?debug`" to URL) to see some interesting signals related to mouse picking.
