@@ -18,8 +18,9 @@ type alias NodeId = String
 type alias SlotId = String
 type alias PortId = (NodeId, SlotId)
 
-type alias PosNode = { pos : Point, id : NodeId, node : Node }
+type alias PosNode = { pos : Point, id : NodeId, cachedNode : CachedNode }
 type alias Node = { title : String, inPorts : List SlotId, outPorts : List SlotId }
+type alias CachedNode = { node: Node, diagram : Diagram Tag }
 
 type alias Edge = { from : PortId, to : PortId }
 
@@ -55,13 +56,13 @@ type MouseEvent = MouseMoveEvt
 -- DATA
 
 fooNode = { title = "Foo", inPorts = ["InAasdfasdfsdafasdfs", "asdfs", "InB", "InC"], outPorts = ["out1", "out2"] }
-fooPosNode = { pos = (-300, -100), id = "foo", node = fooNode }
+fooPosNode = { pos = (-300, -100), id = "foo", cachedNode = { node = fooNode, diagram = viewNode fooNode } }
 
 bazNode = { title = "Baz", inPorts = ["InA", "InB", "InC"], outPorts = ["out1", "out2"] }
-bazPosNode = { pos = (100, -200), id = "baz", node = bazNode }
+bazPosNode = { pos = (100, -200), id = "baz", cachedNode = { node = bazNode, diagram = viewNode bazNode } }
 
 barNode = { title = "Bar", inPorts = ["InA", "InB", "InC"], outPorts = ["out1", "out2"] }
-barPosNode = { pos = (100, 100), id = "bar", node = barNode }
+barPosNode = { pos = (100, 100), id = "bar", cachedNode = { node = barNode, diagram = viewNode barNode } }
 
 fooBarEdge = { from = ("foo", "out1"), to = ("bar", "InA") }
 fooBazEdge = { from = ("foo", "out2"), to = ("baz", "InC") }
@@ -101,7 +102,7 @@ type Tag = NodeIdT NodeId
          | OutPortT SlotId
 
 viewPosNode : PosNode -> Diagram Tag
-viewPosNode pn = move pn.pos <| tag (NodeIdT pn.id) <| viewNode pn.node
+viewPosNode pn = move pn.pos <| tag (NodeIdT pn.id) pn.cachedNode.diagram
 
 viewNode : Node -> Diagram Tag
 viewNode node = let title = Align AlignLeft <| tag TitleT <| text node.title titleStyle
@@ -139,7 +140,8 @@ moveNode model ds mousePos =
                          Just posNode -> let (mx, my) = mousePos
                                              (ox, oy) = ds.offset
                                              newPos = (mx - ox, my - oy)
-                                         in Just { posNode | pos <- newPos }
+                                             newPn = { posNode | pos <- newPos }
+                                         in Just newPn
                          Nothing -> Nothing
   in { model | nodes <- D.update ds.nodeId updateFn model.nodes }
 
@@ -152,12 +154,12 @@ upstate (evt, mousePos) state =
                          M.Nothing -> state
                          M.Just ds -> { state | dragState <- M.Just ds }
     MouseUpEvt -> { state | dragState <- M.Nothing }
-    MouseMoveEvt -> let over = Debug.watch "over" <| pick state.diagram mousePos
+    MouseMoveEvt -> let over = Debug.watch "over" <| pick (state.diagram) mousePos
                     in case state.dragState of
-                      M.Nothing -> state
-                      M.Just ds -> let newModel = moveNode state.model ds mousePos
-                                   in { state | model <- newModel
-                                              , diagram <- view newModel }
+                          M.Nothing -> state
+                          M.Just ds -> let newModel = moveNode state.model ds mousePos
+                                       in { state | model <- newModel
+                                                  , diagram <- view newModel }
 
 watchedUpstate evt state = let newState = upstate evt state
                                ds = Debug.watch "dragState" newState.dragState

@@ -84,7 +84,7 @@ type Diagram a
     = Circle Float C.FillStyle
     | Rect Float Float C.FillStyle
     | Path (List Point) C.LineStyle
-    | Text String T.Style (Float, Float)
+    | Text String T.Style (Float, Float) (E.Element)
     | Spacer Float Float
     -- transformation
     | TransformD Transform (Diagram a)
@@ -119,7 +119,7 @@ text : String -> T.Style -> Diagram a
 text txt style = let te = textElem txt style
                      w = toFloat <| E.widthOf te
                      h = toFloat <| E.heightOf te
-                 in Text txt style (w, h)
+                 in Text txt style (w, h) te
 
 {-| Spacer with given width and height; renders as transparent. -}
 spacer : Float -> Float -> Diagram a
@@ -177,7 +177,7 @@ render d = case d of
              TransformD (Rotate r) dia -> C.rotate r <| render dia
              TransformD (Translate x y) dia -> C.move (x, y) <| render dia
              Spacer _ _ -> C.rect 0 0 |> C.filled Color.black
-             Text str ts _ -> textElem str ts |> C.toForm
+             Text _ _ _ elem -> elem |> C.toForm -- TODO: this makes it get height. taking 10% time in profiler.
              Path path lstyle -> C.traced lstyle path
              Rect w h fstyle -> C.fill fstyle <| C.rect w h
              Circle r fstyle -> C.fill fstyle <| C.circle r
@@ -193,8 +193,6 @@ showBBox d = let dfl = C.defaultLine
                  style = { dfl | width <- 2
                                , color <- Color.red }
              in outlineBox style d
-
--- TODO: factor this logic into a bbox function and a outlined rect function
 
 type alias BBox = { up : Float, down : Float, left : Float, right : Float }
 type alias TransWHBox = { translate : (Float, Float), width : Float, height : Float }
@@ -258,7 +256,7 @@ envelope dir dia =
                                                   Right -> max 0 <| env + tx
                                                   Left -> max 0 <| env - tx
         Spacer w h -> handleBox w h
-        Text str ts (w, h) -> handleBox w h
+        Text str ts (w, h) _ -> handleBox w h
         Path path _ -> let xs = L.map fst path
                            ys = L.map snd path
                        in case dir of
@@ -291,16 +289,11 @@ getCoords' diag path start =
           TransformD trans dia -> getCoords' dia path (applyTrans trans start)
           _ -> M.Nothing
 
--- BUG: not properly distinguishing between Just [] and Nothing
--- TODO: return List (Point, a) instead? so you know how far the mouse was offset from
--- each element in the tag path?
-
 {-| furthest down tree first -}
 type alias PickPath a = List (a, Point)
 
 {-| Given a diagram and a point (e.g. of the mouse) in that Diagram's coordinate space,
 descend the diagram tree to the lowest primitive, returning (TODO: rewrite) -}
--- TODO: what is difference between returning Maybe & and empty list??
 pick : Diagram a -> Point -> M.Maybe (PickPath a)
 pick diag pt =
     let recurse dia pt pickPath = 
@@ -315,7 +308,7 @@ pick diag pt =
                Rect w h _ -> handleBox w h
                Spacer w h -> handleBox w h
                Path pts _ -> M.Nothing -- TODO implement picking for paths
-               Text _ _ (w, h) -> handleBox w h
+               Text _ _ (w, h) _ -> handleBox w h
                Group dias -> firstJust <| L.map (\d -> recurse d pt pickPath) dias
                Tag t diagram -> recurse diagram pt ((t, pt) :: pickPath)
                TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) pickPath
@@ -364,6 +357,7 @@ zcat = Group -- lol
 
 {-| Stack diagrams vertically (as with `vcat`), such that their left edges align.
 The origin of the resulting diagram is the origin of the first diagram. -}
+-- TODO: reformulate this in terms of "moving" origin of one diagram to edge of envelope.
 alignLeft : List (Diagram a) -> Diagram a
 alignLeft dias = let leftEnvelopes = L.map (envelope Left) dias
                      maxLE = L.maximum leftEnvelopes
@@ -457,8 +451,6 @@ firstJust l = case l of
 -}
 lerp : (Float, Float) -> (Float, Float) -> Float -> Float
 lerp (omin, omax) (imin, imax) input = omin + (omax - omin) * (input - imin) / (imax - imin)
-
--- TODO triangle
 
 -- outside world utils
 
