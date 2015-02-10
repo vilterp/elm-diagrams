@@ -287,7 +287,7 @@ getCoords' diag path start =
       (x::xs) -> 
         case diag of
           Tag t dia -> if x == t then getCoords' dia xs start else M.Nothing
-          Group dias -> firstJust <| L.map (\d -> getCoords' d path start) dias
+          Group dias -> M.oneOf <| L.map (\d -> getCoords' d path start) dias
           TransformD trans dia -> getCoords' dia path (applyTrans trans start)
           _ -> M.Nothing
 
@@ -452,12 +452,6 @@ invertTrans t = case t of
                   Rotate angle -> Rotate (-angle)
                   Scale factor -> Scale (1/factor)
                   Translate x y -> Translate (-x) (-y)
-
-firstJust : List (M.Maybe a) -> M.Maybe a
-firstJust l = case l of
-                [] -> M.Nothing
-                ((M.Just x)::xs) -> M.Just x
-                (_::xs) -> firstJust xs
 
 firstNonempty : List (List a) -> List a
 firstNonempty l = case l of
