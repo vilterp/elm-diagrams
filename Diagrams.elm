@@ -401,6 +401,40 @@ vline h ls = Path [(0, h/2), (0, -h/2)] ls
 hline : Float -> C.LineStyle -> Diagram a
 hline w ls = Path [(-w/2, 0), (w/2, 0)] ls
 
+-- bezier
+
+bezier : List Point -> C.LineStyle -> Diagram a
+bezier points ls = path (bezierCurve points) ls
+
+bezierCurve : List Point -> List Point
+bezierCurve controlPoints = if | L.length controlPoints < 4 -> []
+                               | L.length controlPoints == 4 -> L.map (\x -> bezierPoint x controlPoints) resolution
+                               | otherwise -> L.map (\x -> bezierPoint x (L.take 4 controlPoints)) resolution
+
+bezierPoint : Float -> List Point -> Point
+bezierPoint t points = if | (L.length points == 1) -> L.head points 
+                          | otherwise -> bezierPoint t (L.map2 (interpolatePoint t) points (L.tail points))
+
+interpolatePoint : Float -> Point -> Point -> Point
+interpolatePoint t (x0, y0) (x1, y1) = (lerp (x0, x1) (0, 1) t, lerp (y0, y1) (0, 1) t)
+
+{--
+  An array [0, 0.01, 0.02, ..., 1] which defines the resolution of the curve
+--}
+resolution : List Float
+resolution = generate 0 1.0 0.01
+                     
+{--
+  generate: Creates a array of floats beginning from the given start value 
+  until end value. Values in between are start value plus multiples
+  of step value until end is reached or exceeded.
+--}
+generate : Float -> Float -> Float -> List Float
+generate start end step = if | end <= start -> []
+                             | start + step >= end -> [start, end]
+                             | otherwise -> [start] ++ generate (start + step) end step
+
+
 -- TODO: factor out version that lets you specify all directions
 pad : Float -> Diagram a -> Diagram a
 pad pd dia = padAll pd pd pd pd dia

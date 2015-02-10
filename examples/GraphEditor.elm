@@ -118,7 +118,12 @@ viewEdge nodesDia edg = let (fromNode, fromPort) = edg.from
                             (toNode, toPort) = edg.to
                             fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
                             toCoords = case getCoords nodesDia [NodeIdT toNode, InPortT toPort] of { Just pt -> pt }
-                        in path [fromCoords, toCoords] edgeStyle -- TODO: bezier
+                            (fcx, fcy) = fromCoords
+                            (tcx, tcy) = toCoords
+                            cpSpacing = 100
+                        in bezier [ fromCoords, (fcx+cpSpacing, fcy)
+                                  , (tcx-cpSpacing, tcy), toCoords]
+                                  edgeStyle
 
 view : Model -> Diagram Tag
 view model = let nodes = zcat <| L.map viewPosNode <| D.values model.nodes
