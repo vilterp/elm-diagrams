@@ -41,7 +41,7 @@ version is missing a lot of features and generality.
 @docs render, fullWindowView, fullWindowMain, showBBox, showOrigin, outlineBox
 
 # Properties and Querying
-@docs Direction, envelope, width, height, pick, getCoords
+@docs Direction, envelope, width, height, PickPath, pick, getCoords
 
 # Relative Positioning
 @docs beside, above, atop, hcat, vcat, zcat, alignLeft, alignCenter
@@ -291,32 +291,42 @@ getCoords' diag path start =
           TransformD trans dia -> getCoords' dia path (applyTrans trans start)
           _ -> M.Nothing
 
--- BUG: not properly distinguishing between Just [] and Nothing
--- TODO: return List (Point, a) instead? so you know how far the mouse was offset from
--- each element in the tag path?
-
-{-| furthest down tree first -}
+{-| (Tag, Coordinates) pairs from bottom of tree to top; result of
+calling `pick` (see below). -}
 type alias PickPath a = List (a, Point)
 
-{-| Given a diagram and a point (e.g. of the mouse) in that Diagram's coordinate space,
-descend the diagram tree to the lowest primitive, returning (TODO: rewrite) -}
--- TODO: what is difference between returning Maybe & and empty list??
-pick : Diagram a -> Point -> M.Maybe (PickPath a)
+{-| Given a diagram and a point (e.g. of the mouse), return the list of Tag nodes between
+the diagram root and the leaf node the point is within (a primitive visual element), along
+with the point's offset from the local origin at each level. If the mouse is not over a leaf
+node, return `[]`.
+
+Returns a `PickPath`, which is a list of (Tag, Coordinates) pairs ordered
+from the leaf node to the root. The second element in each pair is the given
+point in the tag's coordinate space -- the point which, if transformed by every
+Transform node from that tag node to the root,  would be the point initially given to `pick`.
+
+    pick myDiagram myPoint
+    => [(<tag nearest myDiagram leaf>, <myPoint in leaf coordinate space>),
+       , ...
+       , (<tag nearest myDiagram root>, <myPoint in root coordinate space>)]
+
+-}
+pick : Diagram a -> Point -> PickPath a
 pick diag pt =
     let recurse dia pt pickPath = 
           let handleBox w h = let (x, y) = pt
                                   w2 = w/2
                                   h2 = h/2
                               in if x < w2 && x > -w2 && y < h2 && y > -h2
-                                 then M.Just pickPath
-                                 else M.Nothing 
+                                 then pickPath
+                                 else []
           in case dia of
-               Circle r _ -> if magnitude pt <= r then M.Just pickPath else M.Nothing
+               Circle r _ -> if magnitude pt <= r then pickPath else []
                Rect w h _ -> handleBox w h
                Spacer w h -> handleBox w h
-               Path pts _ -> M.Nothing -- TODO implement picking for paths
+               Path pts _ -> [] -- TODO implement picking for paths
                Text _ _ (w, h) -> handleBox w h
-               Group dias -> firstJust <| L.map (\d -> recurse d pt pickPath) dias
+               Group dias -> firstNonempty <| L.map (\d -> recurse d pt pickPath) dias
                Tag t diagram -> recurse diagram pt ((t, pt) :: pickPath)
                TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) pickPath
     in recurse diag pt []
@@ -448,6 +458,12 @@ firstJust l = case l of
                 [] -> M.Nothing
                 ((M.Just x)::xs) -> M.Just x
                 (_::xs) -> firstJust xs
+
+firstNonempty : List (List a) -> List a
+firstNonempty l = case l of
+                    [] -> []
+                    []::xs -> firstNonempty xs
+                    x::xs -> x
 
 -- linear interpolation
 {-| linear interpolation. To map x from interval (imin, imax) to (omin, omax), use:

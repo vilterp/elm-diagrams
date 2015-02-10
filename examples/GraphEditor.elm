@@ -146,7 +146,7 @@ moveNode model ds mousePos =
 upstate : (MouseEvent, Point) -> State -> State
 upstate (evt, mousePos) state =
   case evt of
-    MouseDownEvt -> let overPath = case pick state.diagram mousePos of { M.Just pp -> pp; Nothing -> [] }
+    MouseDownEvt -> let overPath = pick state.diagram mousePos
                         overNode = overNodeTitle overPath
                     in case overNode of
                          M.Nothing -> state
