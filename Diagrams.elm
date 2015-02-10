@@ -49,6 +49,9 @@ version is missing a lot of features and generality.
 # Shortcuts
 @docs empty, vspace, hspace, vline, hline
 
+# Bezier curves
+@docs bezier
+
 # Geometry Utilities
 @docs Transform, applyTrans, invertTrans, magnitude, lerp
 
@@ -401,15 +404,16 @@ vline h ls = Path [(0, h/2), (0, -h/2)] ls
 hline : Float -> C.LineStyle -> Diagram a
 hline w ls = Path [(-w/2, 0), (w/2, 0)] ls
 
--- bezier
+-- Bezier curves
 
-bezier : List Point -> C.LineStyle -> Diagram a
-bezier points ls = path (bezierCurve points) ls
+-- adapted from https://gist.github.com/irrwitz/968b9762819974c92c9f
+{-| Given four points a, cp1, cp2, b, return path diagram which is a bezier
+curve from a to b, using cp1 and cp2 as control points. -}
+bezier : Point -> Point -> Point -> Point -> C.LineStyle -> Diagram a
+bezier a cp1 cp2 b ls = path (bezierCurve a cp1 cp2 b) ls
 
-bezierCurve : List Point -> List Point
-bezierCurve controlPoints = if | L.length controlPoints < 4 -> []
-                               | L.length controlPoints == 4 -> L.map (\x -> bezierPoint x controlPoints) resolution
-                               | otherwise -> L.map (\x -> bezierPoint x (L.take 4 controlPoints)) resolution
+bezierCurve : Point -> Point -> Point -> Point -> List Point
+bezierCurve a cp1 cp2 b = L.map (\x -> bezierPoint x [a, cp1, cp2, b]) resolution
 
 bezierPoint : Float -> List Point -> Point
 bezierPoint t points = if | (L.length points == 1) -> L.head points 

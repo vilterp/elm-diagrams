@@ -121,8 +121,8 @@ viewEdge nodesDia edg = let (fromNode, fromPort) = edg.from
                             (fcx, fcy) = fromCoords
                             (tcx, tcy) = toCoords
                             cpSpacing = 100
-                        in bezier [ fromCoords, (fcx+cpSpacing, fcy)
-                                  , (tcx-cpSpacing, tcy), toCoords]
+                        in bezier fromCoords (fcx+cpSpacing, fcy)
+                                  (tcx-cpSpacing, tcy) toCoords
                                   edgeStyle
 
 view : Model -> Diagram Tag
