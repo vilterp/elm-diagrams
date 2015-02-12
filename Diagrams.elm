@@ -38,7 +38,7 @@ version is missing a lot of features and generality.
 @docs move, moveX, moveY, scale, rotate
 
 # Rendering and Debugging
-@docs render, fullWindowView, fullWindowMain, showBBox, showOrigin, outlineBox
+@docs render, showBBox, showOrigin, outlineBox
 
 # Properties and Querying
 @docs Direction, envelope, width, height, PickPath, pick, getCoords
@@ -59,7 +59,7 @@ version is missing a lot of features and generality.
 @docs Transform, applyTrans, invertTrans, magnitude, lerp
 
 # Setup Utilities
-@docs fullWindowView, fullWindowMain
+@docs fullWindowView, fullWindowMain, collageMousePos
 
 -}
 
