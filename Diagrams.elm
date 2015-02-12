@@ -52,6 +52,9 @@ version is missing a lot of features and generality.
 # Styles
 @docs FillStroke, justFill, justStroke, fillAndStroke, invisible
 
+# Bezier curves
+@docs bezier
+
 # Geometry Utilities
 @docs Transform, applyTrans, invertTrans, magnitude, lerp
 
@@ -184,12 +187,14 @@ scale s d = TransformD (Scale s) d
 -- rendering and debugging
 
 render : Diagram a -> C.Form
-render d = let handleFS fs shape =
+render d = let handleFS fs pathType shape =
                  let filled = case fs.fill of
                                 Just fillStyle -> [C.fill fillStyle shape]
                                 Nothing -> []
                      stroked = case fs.stroke of
-                                 Just strokeStyle -> [C.outlined strokeStyle shape]
+                                 Just strokeStyle -> case pathType of
+                                                       ClosedP -> [C.outlined strokeStyle shape]
+                                                       OpenP -> [C.traced strokeStyle shape]
                                  Nothing -> []
                  in C.group <| stroked ++ filled
            in case d of
@@ -200,9 +205,9 @@ render d = let handleFS fs shape =
                 TransformD (Rotate r) dia -> C.rotate r <| render dia
                 TransformD (Translate x y) dia -> C.move (x, y) <| render dia
                 Text str ts _ -> textElem str ts |> C.toForm
-                Path path fs ty -> handleFS fs path
-                Rect w h fs -> handleFS fs <| C.rect w h
-                Circle r fs -> handleFS fs <| C.circle r
+                Path path fs ty -> handleFS fs ty path
+                Rect w h fs -> handleFS fs ClosedP <| C.rect w h
+                Circle r fs -> handleFS fs ClosedP <| C.circle r
 
 {-| Draw a red dot at `(0, 0)` in the diagram's local vector space. -}
 showOrigin : Diagram a -> Diagram a
@@ -419,6 +424,40 @@ vline h ls = path [(0, h/2), (0, -h/2)] ls
 {-| Horizontal line -}
 hline : Float -> C.LineStyle -> Diagram a
 hline w ls = path [(-w/2, 0), (w/2, 0)] ls
+
+-- Bezier curves
+
+-- adapted from https://gist.github.com/irrwitz/968b9762819974c92c9f
+{-| Given four points a, cp1, cp2, b, return path diagram which is a bezier
+curve from a to b, using cp1 and cp2 as control points. -}
+bezier : Point -> Point -> Point -> Point -> C.LineStyle -> Diagram a
+bezier a cp1 cp2 b ls = path (bezierCurve a cp1 cp2 b) ls
+
+bezierCurve : Point -> Point -> Point -> Point -> List Point
+bezierCurve a cp1 cp2 b = L.map (\x -> bezierPoint x [a, cp1, cp2, b]) resolution
+
+bezierPoint : Float -> List Point -> Point
+bezierPoint t points = if | (L.length points == 1) -> L.head points 
+                          | otherwise -> bezierPoint t (L.map2 (interpolatePoint t) points (L.tail points))
+
+interpolatePoint : Float -> Point -> Point -> Point
+interpolatePoint t (x0, y0) (x1, y1) = (lerp (x0, x1) (0, 1) t, lerp (y0, y1) (0, 1) t)
+
+{--
+  An array [0, 0.01, 0.02, ..., 1] which defines the resolution of the curve
+--}
+resolution : List Float
+resolution = generate 0 1.0 0.01
+                     
+{--
+  generate: Creates a array of floats beginning from the given start value 
+  until end value. Values in between are start value plus multiples
+  of step value until end is reached or exceeded.
+--}
+generate : Float -> Float -> Float -> List Float
+generate start end step = if | end <= start -> []
+                             | start + step >= end -> [start, end]
+                             | otherwise -> [start] ++ generate (start + step) end step
 
 {-| Like `padAll`, but with same spacing on all sides. -}
 pad : Float -> Diagram a -> Diagram a
