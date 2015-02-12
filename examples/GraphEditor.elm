@@ -105,13 +105,14 @@ viewPosNode pn = move pn.pos <| tag (NodeIdT pn.id) <| viewNode pn.node
 
 viewNode : Node -> Diagram Tag
 viewNode node = let title = Align AlignLeft <| tag TitleT <| text node.title titleStyle
-                    portCirc = circle 7 (C.Solid Color.yellow)
+                    portCirc = circle 7 (justFill <| C.Solid Color.yellow)
                     label lbl = text lbl T.defaultStyle
                     inSlot lbl = Align AlignLeft <| hcat [tag (InPortT lbl) portCirc, hspace 5, label lbl]
                     outSlot lbl = Align AlignRight <| hcat [label lbl, hspace 5, tag (OutPortT lbl) portCirc]
                     outSlots = L.map outSlot node.outPorts
                     inSlots = L.map inSlot node.inPorts
-                in background (C.Solid Color.orange) <| padAll 5 5 7 7 <| alignFlow <| [title] ++ inSlots ++ outSlots
+                    padded = padAll 5 5 7 7 <| alignFlow <| [title] ++ inSlots ++ outSlots
+                in background (fillAndStroke (C.Solid Color.orange) (defaultStroke)) <| padded
 
 viewEdge : Diagram Tag -> Edge -> Diagram Tag
 viewEdge nodesDia edg = let (fromNode, fromPort) = edg.from

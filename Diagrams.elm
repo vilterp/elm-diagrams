@@ -32,7 +32,7 @@ version is missing a lot of features and generality.
 @docs Diagram, TagPath, Point
 
 # Constructors
-@docs circle, rect, path, text, spacer, transform, group, tag
+@docs circle, rect, path, polygon, text, spacer, transform, group, tag, ngon, eqTriangle
 
 # Basic Transforms
 @docs move, moveX, moveY, scale, rotate
@@ -46,8 +46,11 @@ version is missing a lot of features and generality.
 # Relative Positioning
 @docs beside, above, atop, hcat, vcat, zcat, alignLeft, alignCenter
 
-# Shortcuts
-@docs empty, vspace, hspace, vline, hline
+# Composition Utilities
+@docs empty, vspace, hspace, vline, hline, pad, padAll, background
+
+# Styles
+@docs FillStroke, justFill, justStroke, fillAndStroke, invisible
 
 # Geometry Utilities
 @docs Transform, applyTrans, invertTrans, magnitude, lerp
@@ -76,16 +79,17 @@ type alias Point = (Float, Float)
 
 type alias TagPath a = List a
 
+type PathType = ClosedP | OpenP
+
 {-| The recursive tree datatype which represents diagrams. NOTE: because
 these may change, use the functions under Constructors to create them,
 not the datatype constructors themselves. -}
 type Diagram a
     -- primitives
-    = Circle Float C.FillStyle
-    | Rect Float Float C.FillStyle
-    | Path (List Point) C.LineStyle
+    = Circle Float FillStroke
+    | Rect Float Float FillStroke
+    | Path (List Point) FillStroke PathType
     | Text String T.Style (Float, Float)
-    | Spacer Float Float
     -- transformation
     | TransformD Transform (Diagram a)
     -- group
@@ -98,21 +102,28 @@ type Transform
     | Rotate Float
     | Scale Float
 
+type alias FillStroke = { fill : Maybe C.FillStyle
+                        , stroke : Maybe C.LineStyle
+                        }
+
 -- constructors
 
 -- TODO: shouldn't fill style come first in these? I dunno
 
 {-| Circle with a given radius and fill, centered on the local origin. -}
-circle : Float -> C.FillStyle -> Diagram a
+circle : Float -> FillStroke -> Diagram a
 circle = Circle
 
 {-| Rectangle with given width, height, and fill, centered on the local origin. -}
-rect : Float -> Float -> C.FillStyle -> Diagram a
+rect : Float -> Float -> FillStroke -> Diagram a
 rect = Rect
 
 {-| Unclosed path made of this list of points, laid out relative to the local origin. -}
 path : List Point -> C.LineStyle -> Diagram a
-path = Path
+path points ls = Path points (justStroke ls) OpenP
+
+polygon : List Point -> FillStroke -> Diagram a
+polygon points fs = Path points fs ClosedP
 
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
 text : String -> T.Style -> Diagram a
@@ -123,7 +134,7 @@ text txt style = let te = textElem txt style
 
 {-| Spacer with given width and height; renders as transparent. -}
 spacer : Float -> Float -> Diagram a
-spacer = Spacer
+spacer w h = rect w h invisible
 
 {-| Translate, rotate, or scale a given diagram. The transformed diagram has the
 same origin. -}
@@ -140,13 +151,17 @@ diagram tree is useful for picking and getting coordinates. -}
 tag : a -> Diagram a -> Diagram a
 tag = Tag
 
-{-| equilateral triangle with given side length & line style -}
-eqTriangle : Float -> C.LineStyle -> Diagram a
-eqTriangle sideLength ls = let height = sideLength * sin (3*pi/2)
-                               bl = (-sideLength/2, height/3)
-                               br = (sideLength/2, height/3)
-                               top = (0, -height/2)
-                           in path [bl, br, top, bl] ls
+{-| equilateral triangle with given side length & fill/stroke style -}
+eqTriangle : Float -> FillStroke -> Diagram a
+eqTriangle sideLength fs = ngon 3 sideLength fs
+
+{-| regular polygon with number of sides, side length, & fill/stroke style -}
+ngon : Int -> Float -> FillStroke -> Diagram a
+ngon n r fs =
+  let m = toFloat n
+      t = 2 * pi / m
+      f i = ( r * cos ((t*i) + pi/2), r * sin ((t*i) + pi/2) )
+  in polygon (L.map f [0..m-1]) fs
 
 -- basic transformations
 
@@ -169,22 +184,29 @@ scale s d = TransformD (Scale s) d
 -- rendering and debugging
 
 render : Diagram a -> C.Form
-render d = case d of
-             Tag _ dia -> render dia
-             Group dias -> C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
-                                                                     -- have to reverse tho
-             TransformD (Scale s) dia -> C.scale s <| render dia
-             TransformD (Rotate r) dia -> C.rotate r <| render dia
-             TransformD (Translate x y) dia -> C.move (x, y) <| render dia
-             Spacer _ _ -> C.rect 0 0 |> C.filled Color.black
-             Text str ts _ -> textElem str ts |> C.toForm
-             Path path lstyle -> C.traced lstyle path
-             Rect w h fstyle -> C.fill fstyle <| C.rect w h
-             Circle r fstyle -> C.fill fstyle <| C.circle r
+render d = let handleFS fs shape =
+                 let filled = case fs.fill of
+                                Just fillStyle -> [C.fill fillStyle shape]
+                                Nothing -> []
+                     stroked = case fs.stroke of
+                                 Just strokeStyle -> [C.outlined strokeStyle shape]
+                                 Nothing -> []
+                 in C.group <| stroked ++ filled
+           in case d of
+                Tag _ dia -> render dia
+                Group dias -> C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
+                                                                        -- have to reverse tho
+                TransformD (Scale s) dia -> C.scale s <| render dia
+                TransformD (Rotate r) dia -> C.rotate r <| render dia
+                TransformD (Translate x y) dia -> C.move (x, y) <| render dia
+                Text str ts _ -> textElem str ts |> C.toForm
+                Path path fs ty -> handleFS fs path
+                Rect w h fs -> handleFS fs <| C.rect w h
+                Circle r fs -> handleFS fs <| C.circle r
 
 {-| Draw a red dot at `(0, 0)` in the diagram's local vector space. -}
 showOrigin : Diagram a -> Diagram a
-showOrigin d = let originPoint = Circle 3 (C.Solid Color.red)
+showOrigin d = let originPoint = circle 3 <| justFill <| C.Solid Color.red
                in originPoint `atop` d
 
 {-| Draw a red dot box around a diagram. Implemented in terms of `envelope`. -}
@@ -194,8 +216,6 @@ showBBox d = let dfl = C.defaultLine
                                , color <- Color.red }
              in outlineBox style d
 
--- TODO: factor this logic into a bbox function and a outlined rect function
-
 type alias BBox = { up : Float, down : Float, left : Float, right : Float }
 type alias TransWHBox = { translate : (Float, Float), width : Float, height : Float }
 
@@ -203,11 +223,6 @@ bbox2transwh : BBox -> TransWHBox
 bbox2transwh bbox = { translate = ((bbox.right - bbox.left)/2, (bbox.up - bbox.down)/2),
                       width = bbox.right + bbox.left,
                       height = bbox.up + bbox.down }
-
-background : C.FillStyle -> Diagram a -> Diagram a
-background fs dia = let transWH = bbox2transwh <| boundingBox dia
-                        bg = move transWH.translate <| rect transWH.width transWH.height fs
-                    in zcat [dia, bg]
 
 boundingBox : Diagram a -> BBox
 boundingBox dia = { up = envelope Up dia
@@ -218,14 +233,7 @@ boundingBox dia = { up = envelope Up dia
 
 {-| Draw a box around the given diagram (uses `envelope`) -}
 outlineBox : C.LineStyle -> Diagram a -> Diagram a
-outlineBox ls dia = let lineWidth = ls.width
-                        halfLw = lineWidth/2
-                        bbox = boundingBox dia
-                        tl = (-bbox.left - halfLw, bbox.up + halfLw)
-                        tr = (bbox.right + halfLw, bbox.up + halfLw)
-                        bl = (-bbox.left - halfLw, -bbox.down - halfLw)
-                        br = (bbox.right + halfLw, -bbox.down - halfLw)
-                    in zcat [dia, path [tl, tr, br, bl, tl] ls]
+outlineBox ls dia = background (justStroke ls) <| pad (ls.width/2) dia
 
 textElem : String -> T.Style -> E.Element
 textElem str ts = T.fromString str |> T.style ts |> T.centered
@@ -241,11 +249,13 @@ to the closest line which doesn't intersect the content of the diagram.
 -}
 envelope : Direction -> Diagram a -> Float
 envelope dir dia =
-    let handleBox w h = case dir of
-                          Up -> h/2
-                          Down -> h/2
-                          Left -> w/2
-                          Right -> w/2
+    let handleBox w h borderWidth =
+          let base = case dir of
+                       Up -> h/2
+                       Down -> h/2
+                       Left -> w/2
+                       Right -> w/2
+          in base + borderWidth
     in case dia of
         Tag _ dia' -> envelope dir dia'
         Group dias -> L.maximum <| L.map (envelope dir) dias
@@ -257,17 +267,16 @@ envelope dir dia =
                                                   Down -> max 0 <| env - ty
                                                   Right -> max 0 <| env + tx
                                                   Left -> max 0 <| env - tx
-        Spacer w h -> handleBox w h
-        Text str ts (w, h) -> handleBox w h
-        Path path _ -> let xs = L.map fst path
-                           ys = L.map snd path
-                       in case dir of
-                            Left -> -(L.minimum xs)
-                            Right -> L.maximum xs
-                            Up -> L.maximum ys
-                            Down -> -(L.minimum ys)
-        Rect w h _ -> handleBox w h
-        Circle r _ -> r
+        Text str ts (w, h) -> handleBox w h 0
+        Path path fs _ -> let xs = L.map fst path
+                              ys = L.map snd path
+                          in case dir of
+                               Left -> -(L.minimum xs)
+                               Right -> L.maximum xs
+                               Up -> L.maximum ys
+                               Down -> -(L.minimum ys)
+        Rect w h fs -> handleBox w h (halfStrokeWidth fs)
+        Circle r fs -> r + (halfStrokeWidth fs)
 
 width : Diagram a -> Float
 width d = (envelope Left d) + (envelope Right d)
@@ -277,19 +286,19 @@ height d = (envelope Up d) + (envelope Down d)
 
 -- query
 
-getCoords : Diagram a -> TagPath a -> M.Maybe Point
+getCoords : Diagram a -> TagPath a -> Maybe Point
 getCoords dia path = getCoords' dia path (0, 0)
 
-getCoords' : Diagram a -> TagPath a -> Point -> M.Maybe Point
+getCoords' : Diagram a -> TagPath a -> Point -> Maybe Point
 getCoords' diag path start = 
     case path of
-      [] -> M.Just start
+      [] -> Just start
       (x::xs) -> 
         case diag of
-          Tag t dia -> if x == t then getCoords' dia xs start else M.Nothing
+          Tag t dia -> if x == t then getCoords' dia xs start else Nothing
           Group dias -> M.oneOf <| L.map (\d -> getCoords' d path start) dias
           TransformD trans dia -> getCoords' dia path (applyTrans trans start)
-          _ -> M.Nothing
+          _ -> Nothing
 
 {-| (Tag, Coordinates) pairs from bottom of tree to top; result of
 calling `pick` (see below). -}
@@ -314,18 +323,18 @@ Transform node from that tag node to the root,  would be the point initially giv
 pick : Diagram a -> Point -> PickPath a
 pick diag pt =
     let recurse dia pt pickPath = 
-          let handleBox w h = let (x, y) = pt
-                                  w2 = w/2
-                                  h2 = h/2
-                              in if x < w2 && x > -w2 && y < h2 && y > -h2
-                                 then pickPath
-                                 else []
+          let handleBox w h borderWidth =
+                let (x, y) = pt
+                    w2 = w/2 + borderWidth
+                    h2 = h/2 + borderWidth
+                in if x < w2 && x > -w2 && y < h2 && y > -h2
+                   then pickPath
+                   else []
           in case dia of
-               Circle r _ -> if magnitude pt <= r then pickPath else []
-               Rect w h _ -> handleBox w h
-               Spacer w h -> handleBox w h
-               Path pts _ -> [] -- TODO implement picking for paths
-               Text _ _ (w, h) -> handleBox w h
+               Circle r fs -> if magnitude pt <= r + (halfStrokeWidth fs) then pickPath else []
+               Rect w h fs -> handleBox w h (halfStrokeWidth fs)
+               Path pts _ _ -> [] -- TODO implement picking for paths
+               Text _ _ (w, h) -> handleBox w h 0
                Group dias -> firstNonempty <| L.map (\d -> recurse d pt pickPath) dias
                Tag t diagram -> recurse diagram pt ((t, pt) :: pickPath)
                TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) pickPath
@@ -393,28 +402,31 @@ alignCenter dia = let left = envelope Left dia
 -- shortcuts
 
 empty : Diagram a
-empty = Spacer 0 0
+empty = spacer 0 0
 
 {-| Vertical spacer of height h -}
 vspace : Float -> Diagram a
-vspace h = Spacer 0 h
+vspace h = spacer 0 h
 
 {-| Horizontal spacer of width w -}
 hspace : Float -> Diagram a
-hspace w = Spacer w 0
+hspace w = spacer w 0
 
 {-| Vertical line -}
 vline : Float -> C.LineStyle -> Diagram a
-vline h ls = Path [(0, h/2), (0, -h/2)] ls
+vline h ls = path [(0, h/2), (0, -h/2)] ls
 
 {-| Horizontal line -}
 hline : Float -> C.LineStyle -> Diagram a
-hline w ls = Path [(-w/2, 0), (w/2, 0)] ls
+hline w ls = path [(-w/2, 0), (w/2, 0)] ls
 
--- TODO: factor out version that lets you specify all directions
+{-| Like `padAll`, but with same spacing on all sides. -}
 pad : Float -> Diagram a -> Diagram a
 pad pd dia = padAll pd pd pd pd dia
 
+{-| Given four numbers up, down, left, and right, put an invisible spacer
+behind the given diagram, changing its envelope. -}
+padAll : Float -> Float -> Float -> Float -> Diagram a -> Diagram a
 padAll u d l r dia =
     let bbox = boundingBox dia
         paddedBbox = { up = bbox.up + u
@@ -425,13 +437,30 @@ padAll u d l r dia =
         padder = move (transWH.translate) <| spacer (transWH.width) (transWH.height)
     in zcat [dia, padder]
 
--- default styles
+{-| Put a rectangle behind the given diagram, matching its bounding box. -}
+background : FillStroke -> Diagram a -> Diagram a
+background fs dia = let transWH = bbox2transwh <| boundingBox dia
+                        bg = move transWH.translate <| rect transWH.width transWH.height fs
+                    in zcat [dia, bg]
 
-defaultFill : C.FillStyle
-defaultFill = C.Solid Color.blue
+-- Styles
 
--- TODO: util functions with defaults
--- TODO: default style functions (re-export...)
+justFill : C.FillStyle -> FillStroke
+justFill fs = { fill = Just fs, stroke = Nothing }
+
+justStroke : C.LineStyle -> FillStroke
+justStroke ls = { fill = Nothing, stroke = Just ls }
+
+fillAndStroke : C.FillStyle -> C.LineStyle -> FillStroke
+fillAndStroke fs ls = { fill = Just fs, stroke = Just ls }
+
+invisible : FillStroke
+invisible = { fill = Nothing, stroke = Nothing }
+
+defaultStroke : C.LineStyle
+defaultStroke = let defLine = C.defaultLine
+                in { defLine | width <- 3
+                             , cap <- C.Padded }
 
 -- util
 
@@ -459,6 +488,12 @@ firstNonempty l = case l of
                     []::xs -> firstNonempty xs
                     x::xs -> x
 
+halfStrokeWidth : FillStroke -> Float
+halfStrokeWidth fs = case fs.stroke of
+                       Just ls -> ls.width/2
+                       Nothing -> 0
+        
+
 -- linear interpolation
 {-| linear interpolation. To map x from interval (imin, imax) to (omin, omax), use:
 
@@ -467,8 +502,6 @@ firstNonempty l = case l of
 -}
 lerp : (Float, Float) -> (Float, Float) -> Float -> Float
 lerp (omin, omax) (imin, imax) input = omin + (omax - omin) * (input - imin) / (imax - imin)
-
--- TODO triangle
 
 -- outside world utils
 
