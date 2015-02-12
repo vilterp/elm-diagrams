@@ -158,6 +158,7 @@ tag = Tag
 eqTriangle : Float -> FillStroke -> Diagram a
 eqTriangle sideLength fs = ngon 3 sideLength fs
 
+-- adapted from Graphics.Collage
 {-| regular polygon with number of sides, side length, & fill/stroke style -}
 ngon : Int -> Float -> FillStroke -> Diagram a
 ngon n r fs =
