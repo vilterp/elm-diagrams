@@ -30,13 +30,17 @@ initModel = { nodes = D.fromList [ (fooPosNode.id, fooPosNode)
                                  , (barPosNode.id, barPosNode)
                                  , (bazPosNode.id, bazPosNode)
                                  ]
-            , edges = [fooBarEdge, fooBazEdge] }
+            , edges = [fooBarEdge] }
+
+type alias ModelAndDrag = { model : Model, dragState : Maybe DraggingState }
+initModelAndDrag = { model = initModel, dragState = Nothing }
 
 -- app state
 
-type alias DraggingState = { nodeId : NodeId, offset : Point }
-type alias State = { model : Model, diagram : Diagram Tag, dragState : M.Maybe DraggingState }
-initState = { model = initModel, diagram = view initModel, dragState = M.Nothing }
+type DraggingState = DraggingNode { nodeId : NodeId, offset : Point }
+                   | DraggingEdge { fromPort : PortId }
+type alias State = { modelAndDrag : ModelAndDrag, diagram : Diagram Tag }
+initState = { modelAndDrag = initModelAndDrag, diagram = view initModelAndDrag (0,0) }
 
 --upstate = ...
 
@@ -64,7 +68,7 @@ barNode = { title = "Bar", inPorts = ["InA", "InB", "InC"], outPorts = ["out1", 
 barPosNode = { pos = (100, 100), id = "bar", node = barNode }
 
 fooBarEdge = { from = ("foo", "out1"), to = ("bar", "InA") }
-fooBazEdge = { from = ("foo", "out2"), to = ("baz", "InC") }
+--fooBazEdge = { from = ("foo", "out2"), to = ("baz", "InC") }
 
 -- Styles
 
@@ -104,42 +108,57 @@ viewPosNode : PosNode -> Diagram Tag
 viewPosNode pn = move pn.pos <| tag (NodeIdT pn.id) <| viewNode pn.node
 
 viewNode : Node -> Diagram Tag
-viewNode node = let title = Align AlignLeft <| tag TitleT <| text node.title titleStyle
-                    portCirc = circle 7 (justFill <| C.Solid Color.yellow)
-                    label lbl = text lbl T.defaultStyle
-                    inSlot lbl = Align AlignLeft <| hcat [tag (InPortT lbl) portCirc, hspace 5, label lbl]
-                    outSlot lbl = Align AlignRight <| hcat [label lbl, hspace 5, tag (OutPortT lbl) portCirc]
-                    outSlots = L.map outSlot node.outPorts
-                    inSlots = L.map inSlot node.inPorts
-                    padded = padAll 5 5 7 7 <| alignFlow <| [title] ++ inSlots ++ outSlots
-                in background (fillAndStroke (C.Solid Color.orange) (defaultStroke)) <| padded
+viewNode node =
+    let title = Align AlignLeft <| tag TitleT <| text node.title titleStyle
+        portCirc = circle 7 (justFill <| C.Solid Color.yellow)
+        label lbl = text lbl T.defaultStyle
+        inSlot lbl = Align AlignLeft <| hcat [tag (InPortT lbl) portCirc, hspace 5, label lbl]
+        outSlot lbl = Align AlignRight <| hcat [label lbl, hspace 5, tag (OutPortT lbl) portCirc]
+        outSlots = L.map outSlot node.outPorts
+        inSlots = L.map inSlot node.inPorts
+        padded = padAll 5 5 7 7 <| alignFlow <| [title] ++ inSlots ++ outSlots
+    in background (fillAndStroke (C.Solid Color.orange) (defaultStroke)) <| padded
 
 viewEdge : Diagram Tag -> Edge -> Diagram Tag
-viewEdge nodesDia edg = let (fromNode, fromPort) = edg.from
-                            (toNode, toPort) = edg.to
-                            fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
-                            toCoords = case getCoords nodesDia [NodeIdT toNode, InPortT toPort] of { Just pt -> pt }
-                            (fcx, fcy) = fromCoords
-                            (tcx, tcy) = toCoords
-                            cpSpacing = 100
-                        in bezier fromCoords (fcx+cpSpacing, fcy)
-                                  (tcx-cpSpacing, tcy) toCoords
-                                  edgeStyle
+viewEdge nodesDia edg =
+    let (fromNode, fromPort) = edg.from
+        (toNode, toPort) = edg.to
+        fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
+        toCoords = case getCoords nodesDia [NodeIdT toNode, InPortT toPort] of { Just pt -> pt }
+    in viewGenericEdge fromCoords toCoords
 
-view : Model -> Diagram Tag
-view model = let nodes = zcat <| L.map viewPosNode <| D.values model.nodes
-                 edges = zcat <| L.map (viewEdge nodes) model.edges
-             in zcat [edges, nodes]
+viewGenericEdge : Point -> Point -> Diagram Tag
+viewGenericEdge fromCoords toCoords =
+    let (fcx, fcy) = fromCoords
+        (tcx, tcy) = toCoords
+        cpSpacing = 100
+    in bezier fromCoords (fcx+cpSpacing, fcy)
+              (tcx-cpSpacing, tcy) toCoords
+              edgeStyle
+
+viewDraggingEdge : PortId -> Diagram Tag -> Point -> Diagram Tag
+viewDraggingEdge (fromNode, fromPort) nodesDia mousePos =
+    let fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
+    in viewGenericEdge fromCoords mousePos
+
+view : ModelAndDrag -> Point -> Diagram Tag
+view mAndD mousePos = let nodes = zcat <| L.map viewPosNode <| D.values mAndD.model.nodes
+                          edges = zcat <| L.map (viewEdge nodes) mAndD.model.edges
+                          draggingEdge = case mAndD.dragState of
+                                           Just (DraggingEdge {fromPort}) -> [viewDraggingEdge fromPort nodes mousePos]
+                                           _ -> []
+                      in zcat <| draggingEdge ++ [edges, nodes]
 
 -- Main
 
-overNodeTitle : PickPath Tag -> M.Maybe DraggingState
-overNodeTitle pp =
+getDragState : PickPath Tag -> Maybe DraggingState
+getDragState pp =
   case pp of
-    (TitleT, _)::(NodeIdT nid, offset)::xs -> M.Just { nodeId = nid, offset = offset }
-    _ -> M.Nothing
+    (TitleT, _)::(NodeIdT nid, offset)::_ -> Just <| DraggingNode { nodeId = nid, offset = offset }
+    (OutPortT slotId, _)::(NodeIdT nid, _)::_ -> Just <| DraggingEdge { fromPort = (nid, slotId) }
+    _ -> Nothing
 
-moveNode : Model -> DraggingState -> Point -> Model
+moveNode : Model -> { nodeId : NodeId, offset : Point } -> Point -> Model
 moveNode model ds mousePos =
   let updateFn value = case value of
                          Just posNode -> let (mx, my) = mousePos
@@ -149,24 +168,47 @@ moveNode model ds mousePos =
                          Nothing -> Nothing
   in { model | nodes <- D.update ds.nodeId updateFn model.nodes }
 
+addEdge : Model -> PortId -> PortId -> Model
+addEdge model from to = let newEdge = { from = from, to = to }
+                        in { model | edges <- newEdge :: model.edges }
+
+-- TODO: factor out all this drag state & mad updating
 upstate : (MouseEvent, Point) -> State -> State
 upstate (evt, mousePos) state =
   case evt of
     MouseDownEvt -> let overPath = pick state.diagram mousePos
-                        overNode = overNodeTitle overPath
-                    in case overNode of
-                         M.Nothing -> state
-                         M.Just ds -> { state | dragState <- M.Just ds }
-    MouseUpEvt -> { state | dragState <- M.Nothing }
+                        mAndD = state.modelAndDrag
+                        mAndD' = { mAndD | dragState <- getDragState overPath }
+                    in { state | modelAndDrag <- mAndD' }
+    MouseUpEvt -> case state.modelAndDrag.dragState of
+                    Just (DraggingNode _) ->
+                        let maD = state.modelAndDrag
+                            newMaD = { maD | dragState <- Nothing }
+                        in { state | modelAndDrag <- newMaD }
+                    Just (DraggingEdge {fromPort}) ->
+                        let overPath = pick state.diagram mousePos
+                            newModel = case overPath of
+                                         (InPortT inPort, _)::(NodeIdT nodeId, _)::_ ->
+                                              addEdge state.modelAndDrag.model fromPort (nodeId, inPort)
+                                         _ -> state.modelAndDrag.model
+                            newMaD = { model = newModel, dragState = Nothing }
+                        in { state | modelAndDrag <- newMaD
+                                   , diagram <- view newMaD mousePos }
     MouseMoveEvt -> let over = Debug.watch "over" <| pick state.diagram mousePos
-                    in case state.dragState of
-                      M.Nothing -> state
-                      M.Just ds -> let newModel = moveNode state.model ds mousePos
-                                   in { state | model <- newModel
-                                              , diagram <- view newModel }
+                    in case state.modelAndDrag.dragState of
+                         Nothing -> state
+                         Just (DraggingNode dsn) ->
+                             let newModel = moveNode state.modelAndDrag.model dsn mousePos
+                                 maD = state.modelAndDrag
+                                 newMaD = { maD | model <- newModel }
+                             in { state | modelAndDrag <- newMaD
+                                        , diagram <- view newMaD mousePos }
+                         Just (DraggingEdge edg) ->
+                             { state | diagram <- view state.modelAndDrag mousePos }
+
 
 watchedUpstate evt state = let newState = upstate evt state
-                               ds = Debug.watch "dragState" newState.dragState
+                               ds = Debug.watch "dragState" newState.modelAndDrag.dragState
                            in newState
 
 state : Signal State
