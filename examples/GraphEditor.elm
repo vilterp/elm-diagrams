@@ -37,6 +37,7 @@ initModelAndDrag = { model = initModel, dragState = Nothing }
 
 -- app state
 
+-- TODO: mouse pos should be a part of this
 type DraggingState = DraggingNode { nodeId : NodeId, offset : Point }
                    | DraggingEdge { fromPort : PortId }
 type alias State = { modelAndDrag : ModelAndDrag, diagram : Diagram Tag }
@@ -172,40 +173,42 @@ addEdge : Model -> PortId -> PortId -> Model
 addEdge model from to = let newEdge = { from = from, to = to }
                         in { model | edges <- newEdge :: model.edges }
 
--- TODO: factor out all this drag state & mad updating
+updateDragState : State -> Maybe DraggingState -> State
+updateDragState state ds =
+    let maD = state.modelAndDrag
+        newMaD = { maD | dragState <- ds }
+    in { state | modelAndDrag <- newMaD }
+
+updateModel : State -> Model -> Point -> State
+updateModel state newModel mousePos =
+    let maD = state.modelAndDrag
+        newMaD = { maD | model <- newModel }
+    in { state | modelAndDrag <- newMaD
+               , diagram <- view newMaD mousePos }
+
 upstate : (MouseEvent, Point) -> State -> State
 upstate (evt, mousePos) state =
   case evt of
     MouseDownEvt -> let overPath = pick state.diagram mousePos
-                        mAndD = state.modelAndDrag
-                        mAndD' = { mAndD | dragState <- getDragState overPath }
-                    in { state | modelAndDrag <- mAndD' }
+                    in updateDragState state <| getDragState overPath
     MouseUpEvt -> case state.modelAndDrag.dragState of
                     Just (DraggingNode _) ->
-                        let maD = state.modelAndDrag
-                            newMaD = { maD | dragState <- Nothing }
-                        in { state | modelAndDrag <- newMaD }
+                        updateDragState state Nothing
                     Just (DraggingEdge {fromPort}) ->
                         let overPath = pick state.diagram mousePos
                             newModel = case overPath of
                                          (InPortT inPort, _)::(NodeIdT nodeId, _)::_ ->
                                               addEdge state.modelAndDrag.model fromPort (nodeId, inPort)
                                          _ -> state.modelAndDrag.model
-                            newMaD = { model = newModel, dragState = Nothing }
-                        in { state | modelAndDrag <- newMaD
-                                   , diagram <- view newMaD mousePos }
+                        in updateModel (updateDragState state Nothing) newModel mousePos
     MouseMoveEvt -> let over = Debug.watch "over" <| pick state.diagram mousePos
                     in case state.modelAndDrag.dragState of
                          Nothing -> state
                          Just (DraggingNode dsn) ->
                              let newModel = moveNode state.modelAndDrag.model dsn mousePos
-                                 maD = state.modelAndDrag
-                                 newMaD = { maD | model <- newModel }
-                             in { state | modelAndDrag <- newMaD
-                                        , diagram <- view newMaD mousePos }
+                             in updateModel state newModel mousePos
                          Just (DraggingEdge edg) ->
                              { state | diagram <- view state.modelAndDrag mousePos }
-
 
 watchedUpstate evt state = let newState = upstate evt state
                                ds = Debug.watch "dragState" newState.modelAndDrag.dragState
