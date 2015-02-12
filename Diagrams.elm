@@ -560,7 +560,7 @@ fullWindowView (w, h) d = C.collage w h [render d]
 
 {-| The easiest way to get a diagram on the screen:
 
-    main = fullWindowMain (rect 10 10 (C.Solid Color.orange))
+    main = fullWindowMain (rect 10 10 (justFill <| C.Solid Color.orange))
 -}
 fullWindowMain : Diagram a -> Signal E.Element
 fullWindowMain dia = Signal.map (\size -> fullWindowView size dia) Window.dimensions
