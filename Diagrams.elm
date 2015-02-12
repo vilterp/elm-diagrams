@@ -550,6 +550,9 @@ toPoint (x, y) = (toFloat x, toFloat y)
 floatWindowDims = Signal.map toPoint Window.dimensions
 floatMousePos = Signal.map toPoint Mouse.position
 toCollageCoords (w, h) (x, y) = (x - w/2, h/2 - y)
+
+{-| Mouse position relative to the collage's origin (in the middle of the screen). -}
+collageMousePos : Signal Point
 collageMousePos = Signal.map2 toCollageCoords floatWindowDims floatMousePos
 
 fullWindowView : (Int, Int) -> Diagram a -> E.Element
