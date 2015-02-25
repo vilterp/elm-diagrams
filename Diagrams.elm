@@ -92,7 +92,7 @@ type Diagram a
     = Circle Float FillStroke
     | Rect Float Float FillStroke
     | Path (List Point) FillStroke PathType
-    | Text String T.Style (Float, Float)
+    | Text String T.Style E.Element
     -- transformation
     | TransformD Transform (Diagram a)
     -- group
@@ -131,9 +131,7 @@ polygon points fs = Path points fs ClosedP
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
 text : String -> T.Style -> Diagram a
 text txt style = let te = textElem txt style
-                     w = toFloat <| E.widthOf te
-                     h = toFloat <| E.heightOf te
-                 in Text txt style (w, h)
+                 in Text txt style te
 
 {-| Spacer with given width and height; renders as transparent. -}
 spacer : Float -> Float -> Diagram a
@@ -205,7 +203,7 @@ render d = let handleFS fs pathType shape =
                 TransformD (Scale s) dia -> C.scale s <| render dia
                 TransformD (Rotate r) dia -> C.rotate r <| render dia
                 TransformD (Translate x y) dia -> C.move (x, y) <| render dia
-                Text str ts _ -> textElem str ts |> C.toForm
+                Text str ts te -> C.toForm te
                 Path path fs ty -> handleFS fs ty path
                 Rect w h fs -> handleFS fs ClosedP <| C.rect w h
                 Circle r fs -> handleFS fs ClosedP <| C.circle r
@@ -278,7 +276,7 @@ envelope dir dia =
                                                   Down -> max 0 <| env - ty
                                                   Right -> max 0 <| env + tx
                                                   Left -> max 0 <| env - tx
-        Text str ts (w, h) -> handleBox w h 0
+        Text str ts te -> handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
         Path path fs _ -> let xs = L.map fst path
                               ys = L.map snd path
                           in case dir of
@@ -345,7 +343,7 @@ pick diag pt =
                Circle r fs -> if magnitude pt <= r + (halfStrokeWidth fs) then pickPath else []
                Rect w h fs -> handleBox w h (halfStrokeWidth fs)
                Path pts _ _ -> [] -- TODO implement picking for paths
-               Text _ _ (w, h) -> handleBox w h 0
+               Text _ _ te -> handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
                Group dias -> firstNonempty <| L.map (\d -> recurse d pt pickPath) dias
                Tag t diagram -> recurse diagram pt ((t, pt) :: pickPath)
                TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) pickPath
