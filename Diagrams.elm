@@ -266,7 +266,12 @@ envelope dir dia =
         Tag _ dia' -> envelope dir dia'
         Group dias -> L.maximum <| L.map (envelope dir) dias
         TransformD (Scale s) diag -> s * (envelope dir diag)
-        -- TODO: TransformD (Rotate r) dia -> (trig!)
+        TransformD (Rotate r) rotDia ->
+            case rotDia of
+              Path points fs pt -> let newPoints = L.map (applyTrans <| Rotate r) points
+                                   in envelope dir <| Path newPoints fs pt
+              Circle _ _ -> envelope dir rotDia
+              -- TODO: handleBox for rect, text
         TransformD (Translate tx ty) diag -> let env = envelope dir diag
                                              in case dir of
                                                   Up -> max 0 <| env + ty
