@@ -368,7 +368,7 @@ above a b = let yTrans = (envelope Down a) + (envelope Up b)
               in Group [a, TransformD (Translate 0 -yTrans) b]
 
 {-| Given two diagrams a and b, stack a on top of b in the "out of page" axis,
-so a occlodes b. -}
+so a occludes b. -}
 atop : Diagram a -> Diagram a -> Diagram a
 atop a b = Group [a, b]
 
