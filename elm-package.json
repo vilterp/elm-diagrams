@@ -7,7 +7,8 @@
         "."
     ],
     "exposed-modules": [
-        "Diagrams"
+        "Diagrams",
+        "Diagrams.Interact"
     ],
     "dependencies": {
         "elm-lang/core": "1.1.0 <= v < 2.0.0"
