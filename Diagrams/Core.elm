@@ -1,4 +1,4 @@
-module Diagrams where
+module Diagrams.Core where
 
 {-| Diagrams is a library built on top of `Graphics.Collage` which allows you to
 construct graphics by laying out elements relative to each other.
@@ -12,7 +12,7 @@ simultaneously by the transformations above them.
 
 [Sierpinski triangle example](https://gist.github.com/vilterp/9966fd18de8d9b282ade)
 
-Lastly, there are `Tag` nodes which just hold a child diagram and a value of type a;
+Lastly, there are `Tag` nodes which just hold a child Diagram t and a value of type a;
 these exist solely to identify a subdiagram, for the purposes of (a) specifying a tag
 path and getting the coordinates it was positioned at (the `getCoords` function) or
 (b) given a point, find what subtree it is over (the `pick` function).
@@ -29,7 +29,7 @@ version is missing a lot of features and generality.
  [hd-tut]: http://projects.haskell.org/diagrams/doc/quickstart.html
 
 # Basic Types
-@docs Diagram, TagPath, Point
+@docs Diagram, Point, PathType
 
 # Constructors
 @docs circle, rect, path, polygon, text, spacer, transform, group, tag, ngon, eqTriangle
@@ -41,7 +41,7 @@ version is missing a lot of features and generality.
 @docs render, showBBox, showOrigin, outlineBox
 
 # Properties and Querying
-@docs Direction, envelope, width, height, PickPath, pick, getCoords
+@docs Direction, envelope, width, height
 
 # Relative Positioning
 @docs beside, above, atop, hcat, vcat, zcat, alignLeft, alignCenter
@@ -58,9 +58,6 @@ version is missing a lot of features and generality.
 # Geometry Utilities
 @docs Transform, applyTrans, invertTrans, magnitude, lerp
 
-# Setup Utilities
-@docs fullWindowView, fullWindowMain, collageMousePos
-
 -}
 
 import Graphics.Collage as C
@@ -72,33 +69,25 @@ import Maybe as M
 import Transform2D
 import Color
 
-import Window
-import Signal
-import Mouse
-
-import Debug
-
 type alias Point = (Float, Float)
-
-type alias TagPath a = List a
 
 type PathType = ClosedP | OpenP
 
 {-| The recursive tree datatype which represents diagrams. NOTE: because
 these may change, use the functions under Constructors to create them,
 not the datatype constructors themselves. -}
-type Diagram a
+type Diagram t a
     -- primitives
     = Circle Float FillStroke
     | Rect Float Float FillStroke
     | Path (List Point) FillStroke PathType
     | Text String T.Style E.Element
     -- transformation
-    | TransformD Transform (Diagram a)
+    | TransformD Transform (Diagram t a)
     -- group
-    | Group (List (Diagram a))
+    | Group (List (Diagram t a))
     -- tag
-    | Tag a (Diagram a)
+    | Tag t (ActionSet a) (Diagram t a)
 
 type Transform
     = Translate Float Float
@@ -109,56 +98,82 @@ type alias FillStroke = { fill : Maybe C.FillStyle
                         , stroke : Maybe C.LineStyle
                         }
 
+type Direction = Up | Down | Left | Right
+
+-- TODO: wouuld be nice to have these live in Interact, but don't know
+-- how without a cyclic import (are those allowed?)
+type alias EventToAction a = Point -> a
+type alias ActionSet a =
+    { click : Maybe (EventToAction a)
+    , mouseEnter : Maybe (EventToAction a)
+    , mouseLeave : Maybe (EventToAction a)
+    , mouseMove : Maybe (EventToAction a)
+    , mouseDown : Maybe (EventToAction a)
+    , mouseUp : Maybe (EventToAction a)
+    }
+emptyActionSet =
+    { click = Nothing
+    , mouseEnter = Nothing
+    , mouseLeave = Nothing
+    , mouseMove = Nothing
+    , mouseDown = Nothing
+    , mouseUp = Nothing
+    }
+
 -- constructors
 
 -- TODO: shouldn't fill style come first in these? I dunno
 
 {-| Circle with a given radius and fill, centered on the local origin. -}
-circle : Float -> FillStroke -> Diagram a
+circle : Float -> FillStroke -> Diagram t a
 circle = Circle
 
 {-| Rectangle with given width, height, and fill, centered on the local origin. -}
-rect : Float -> Float -> FillStroke -> Diagram a
+rect : Float -> Float -> FillStroke -> Diagram t a
 rect = Rect
 
 {-| Unclosed path made of this list of points, laid out relative to the local origin. -}
-path : List Point -> C.LineStyle -> Diagram a
+path : List Point -> C.LineStyle -> Diagram t a
 path points ls = Path points (justStroke ls) OpenP
 
-polygon : List Point -> FillStroke -> Diagram a
+polygon : List Point -> FillStroke -> Diagram t a
 polygon points fs = Path points fs ClosedP
 
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
-text : String -> T.Style -> Diagram a
+text : String -> T.Style -> Diagram t a
 text txt style = let te = textElem txt style
                  in Text txt style te
 
 {-| Spacer with given width and height; renders as transparent. -}
-spacer : Float -> Float -> Diagram a
+spacer : Float -> Float -> Diagram t a
 spacer w h = rect w h invisible
 
 {-| Translate, rotate, or scale a given diagram. The transformed diagram has the
 same origin. -}
-transform : Transform -> Diagram a -> Diagram a
+transform : Transform -> Diagram t a -> Diagram t a
 transform = TransformD
 
 {-| Group a list of Diagrams in to one. Elements will be stacked with local origins
 on top of one another. This is the same as `zcat`. -}
-group : List (Diagram a) -> Diagram a
+group : List (Diagram t a) -> Diagram t a
 group = Group
 
-{-| Return a Tag node with the given diagram as its sole child. Adding this to the 
+{-| Return a Tag node with the given Diagram t as its sole child. Adding this to the 
 diagram tree is useful for picking and getting coordinates. -}
-tag : a -> Diagram a -> Diagram a
-tag = Tag
+tag : t -> Diagram t a -> Diagram t a
+tag t dia = Tag t emptyActionSet dia
+
+-- TODO: move to Interact? would be nice not to require tag
+tagWithActions : t -> ActionSet a -> Diagram t a -> Diagram t a
+tagWithActions = Tag
 
 {-| equilateral triangle with given side length & fill/stroke style -}
-eqTriangle : Float -> FillStroke -> Diagram a
+eqTriangle : Float -> FillStroke -> Diagram t a
 eqTriangle sideLength fs = ngon 3 sideLength fs
 
 -- adapted from Graphics.Collage
 {-| regular polygon with number of sides, side length, & fill/stroke style -}
-ngon : Int -> Float -> FillStroke -> Diagram a
+ngon : Int -> Float -> FillStroke -> Diagram t a
 ngon n r fs =
   let m = toFloat n
       t = 2 * pi / m
@@ -167,25 +182,25 @@ ngon n r fs =
 
 -- basic transformations
 
-rotate : Float -> Diagram a -> Diagram a
+rotate : Float -> Diagram t a -> Diagram t a
 rotate r d = TransformD (Rotate r) d
 
 {-| Translate given diagram by (x, y). Origin of resulting diagram is the same. -}
-move : (Float, Float) -> Diagram a -> Diagram a
+move : (Float, Float) -> Diagram t a -> Diagram t a
 move (x, y) dia = TransformD (Translate x y) dia
 
-moveX : Float -> Diagram a -> Diagram a
+moveX : Float -> Diagram t a -> Diagram t a
 moveX x = move (x, 0)
 
-moveY : Float -> Diagram a -> Diagram a
+moveY : Float -> Diagram t a -> Diagram t a
 moveY y = move (0, y)
 
-scale : Float -> Diagram a -> Diagram a
+scale : Float -> Diagram t a -> Diagram t a
 scale s d = TransformD (Scale s) d
 
 -- rendering and debugging
 
-render : Diagram a -> C.Form
+render : Diagram t a -> C.Form
 render d = let handleFS fs pathType shape =
                  let filled = case fs.fill of
                                 Just fillStyle -> [C.fill fillStyle shape]
@@ -197,7 +212,7 @@ render d = let handleFS fs pathType shape =
                                  Nothing -> []
                  in C.group <| stroked ++ filled
            in case d of
-                Tag _ dia -> render dia
+                Tag _ _ dia -> render dia
                 Group dias -> C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
                                                                         -- have to reverse tho
                 TransformD (Scale s) dia -> C.scale s <| render dia
@@ -209,12 +224,12 @@ render d = let handleFS fs pathType shape =
                 Circle r fs -> handleFS fs ClosedP <| C.circle r
 
 {-| Draw a red dot at `(0, 0)` in the diagram's local vector space. -}
-showOrigin : Diagram a -> Diagram a
+showOrigin : Diagram t a -> Diagram t a
 showOrigin d = let originPoint = circle 3 <| justFill <| C.Solid Color.red
                in originPoint `atop` d
 
 {-| Draw a red dot box around a diagram. Implemented in terms of `envelope`. -}
-showBBox : Diagram a -> Diagram a
+showBBox : Diagram t a -> Diagram t a
 showBBox d = let dfl = C.defaultLine
                  style = { dfl | width <- 2
                                , color <- Color.red }
@@ -228,7 +243,7 @@ bbox2transwh bbox = { translate = ((bbox.right - bbox.left)/2, (bbox.up - bbox.d
                       width = bbox.right + bbox.left,
                       height = bbox.up + bbox.down }
 
-boundingBox : Diagram a -> BBox
+boundingBox : Diagram t a -> BBox
 boundingBox dia = { up = envelope Up dia
                   , down = envelope Down dia
                   , left = envelope Left dia
@@ -236,7 +251,7 @@ boundingBox dia = { up = envelope Up dia
                   }
 
 {-| Draw a box around the given diagram (uses `envelope`) -}
-outlineBox : C.LineStyle -> Diagram a -> Diagram a
+outlineBox : C.LineStyle -> Diagram t a -> Diagram t a
 outlineBox ls dia = background (justStroke ls) <| pad (ls.width/2) dia
 
 textElem : String -> T.Style -> E.Element
@@ -244,14 +259,12 @@ textElem str ts = T.fromString str |> T.style ts |> T.centered
 
 -- properties and querying
 
-type Direction = Up | Down | Left | Right
-
-{-| Given a Diagram and a Direction, return the distance in that direction from the origin
+{-| Given a Diagram t and a Direction, return the distance in that direction from the origin
 to the closest line which doesn't intersect the content of the diagram.
 
  [hd]: http://projects.haskell.org/diagrams/doc/manual.html#envelopes-and-local-vector-spaces
 -}
-envelope : Direction -> Diagram a -> Float
+envelope : Direction -> Diagram t a -> Float
 envelope dir dia =
     let handleBox w h borderWidth =
           let base = case dir of
@@ -261,7 +274,7 @@ envelope dir dia =
                        Right -> w/2
           in base + borderWidth
     in case dia of
-        Tag _ dia' -> envelope dir dia'
+        Tag _ _ dia' -> envelope dir dia'
         Group dias -> L.maximum <| L.map (envelope dir) dias
         TransformD (Scale s) diag -> s * (envelope dir diag)
         TransformD (Rotate r) rotDia ->
@@ -287,119 +300,63 @@ envelope dir dia =
         Rect w h fs -> handleBox w h (halfStrokeWidth fs)
         Circle r fs -> r + (halfStrokeWidth fs)
 
-width : Diagram a -> Float
+width : Diagram t a -> Float
 width d = (envelope Left d) + (envelope Right d)
 
-height : Diagram a -> Float
+height : Diagram t a -> Float
 height d = (envelope Up d) + (envelope Down d)
-
--- query
-
-getCoords : Diagram a -> TagPath a -> Maybe Point
-getCoords dia path = getCoords' dia path (0, 0)
-
-getCoords' : Diagram a -> TagPath a -> Point -> Maybe Point
-getCoords' diag path start = 
-    case path of
-      [] -> Just start
-      (x::xs) -> 
-        case diag of
-          Tag t dia -> if x == t then getCoords' dia xs start else Nothing
-          Group dias -> M.oneOf <| L.map (\d -> getCoords' d path start) dias
-          TransformD trans dia -> getCoords' dia path (applyTrans trans start)
-          _ -> Nothing
-
-{-| (Tag, Coordinates) pairs from bottom of tree to top; result of
-calling `pick` (see below). -}
-type alias PickPath a = List (a, Point)
-
-{-| Given a diagram and a point (e.g. of the mouse), return the list of Tag nodes between
-the diagram root and the leaf node the point is within (a primitive visual element), along
-with the point's offset from the local origin at each level. If the mouse is not over a leaf
-node, return `[]`.
-
-Returns a `PickPath`, which is a list of (Tag, Coordinates) pairs ordered
-from the leaf node to the root. The second element in each pair is the given
-point in the tag's coordinate space -- the point which, if transformed by every
-Transform node from that tag node to the root,  would be the point initially given to `pick`.
-
-    pick myDiagram myPoint
-    => [(<tag nearest myDiagram leaf>, <myPoint in leaf coordinate space>),
-       , ...
-       , (<tag nearest myDiagram root>, <myPoint in root coordinate space>)]
-
--}
-pick : Diagram a -> Point -> PickPath a
-pick diag pt =
-    let recurse dia pt pickPath = 
-          let handleBox w h borderWidth =
-                let (x, y) = pt
-                    w2 = w/2 + borderWidth
-                    h2 = h/2 + borderWidth
-                in if x < w2 && x > -w2 && y < h2 && y > -h2
-                   then pickPath
-                   else []
-          in case dia of
-               Circle r fs -> if magnitude pt <= r + (halfStrokeWidth fs) then pickPath else []
-               Rect w h fs -> handleBox w h (halfStrokeWidth fs)
-               Path pts _ _ -> [] -- TODO implement picking for paths
-               Text _ _ te -> handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
-               Group dias -> firstNonempty <| L.map (\d -> recurse d pt pickPath) dias
-               Tag t diagram -> recurse diagram pt ((t, pt) :: pickPath)
-               TransformD trans diagram -> recurse diagram (applyTrans (invertTrans trans) pt) pickPath
-    in recurse diag pt []
 
 -- positioning
 
 {-| Given two diagrams a and b, place b to the right of a, such that their origins
 are on a horizontal line and their envelopes touch. The origin of the new diagram
 is the origin of a. -}
-beside : Diagram a -> Diagram a -> Diagram a
+beside : Diagram t a -> Diagram t a -> Diagram t a
 beside a b = let xTrans = (envelope Right a) + (envelope Left b)
              in Group [a, TransformD (Translate xTrans 0) b]
 
 {-| Given two diagrams a and b, place b to the right of a, such that their origins
 are on a horizontal line and their envelopes touch. The origin of the new diagram
 is the origin of a. -}
-above : Diagram a -> Diagram a -> Diagram a
+above : Diagram t a -> Diagram t a -> Diagram t a
 above a b = let yTrans = (envelope Down a) + (envelope Up b)
               in Group [a, TransformD (Translate 0 -yTrans) b]
 
 {-| Given two diagrams a and b, stack a on top of b in the "out of page" axis,
 so a occludes b. -}
-atop : Diagram a -> Diagram a -> Diagram a
+atop : Diagram t a -> Diagram t a -> Diagram t a
 atop a b = Group [a, b]
 
 {-| Place a list of Diagrams next to each other, such that
 their origins are along a horizontal line. The first element in the list will
 be on the left; the last on the right. -}
-hcat : List (Diagram a) -> Diagram a
+hcat : List (Diagram t a) -> Diagram t a
 hcat = L.foldr beside empty
 
 {-| Place a list of Diagrams next to each other, such that
 their origins are along a vertical line. The first element in the list will
 be on the top; the last on the bottom. -}
-vcat : List (Diagram a) -> Diagram a
+vcat : List (Diagram t a) -> Diagram t a
 vcat = L.foldr above empty
 
 {-| Place a list of diagrams on top of each other, with their origin points
 stacked on the "out of page" axis. The first diagram in the list is on top.
 This is the same as the `group`. -}
-zcat : List (Diagram a) -> Diagram a
+zcat : List (Diagram t a) -> Diagram t a
 zcat = Group -- lol
 
 -- TODO: more aligns
 
 {-| Stack diagrams vertically (as with `vcat`), such that their left edges align.
 The origin of the resulting diagram is the origin of the first diagram. -}
-alignLeft : List (Diagram a) -> Diagram a
+alignLeft : List (Diagram t a) -> Diagram t a
 alignLeft dias = let leftEnvelopes = L.map (envelope Left) dias
                      maxLE = L.maximum leftEnvelopes
                      moved = L.map2 (\dia le -> moveX -(maxLE - le) dia) dias leftEnvelopes
                  in vcat moved
 
 {-| translate a diagram such that the envelope in all directions is equal -}
-alignCenter : Diagram a -> Diagram a
+alignCenter : Diagram t a -> Diagram t a
 alignCenter dia = let left = envelope Left dia
                       right = envelope Right dia
                       xTrans = (right - left)/2
@@ -410,23 +367,23 @@ alignCenter dia = let left = envelope Left dia
 
 -- shortcuts
 
-empty : Diagram a
+empty : Diagram t a
 empty = spacer 0 0
 
 {-| Vertical spacer of height h -}
-vspace : Float -> Diagram a
+vspace : Float -> Diagram t a
 vspace h = spacer 0 h
 
 {-| Horizontal spacer of width w -}
-hspace : Float -> Diagram a
+hspace : Float -> Diagram t a
 hspace w = spacer w 0
 
 {-| Vertical line -}
-vline : Float -> C.LineStyle -> Diagram a
+vline : Float -> C.LineStyle -> Diagram t a
 vline h ls = path [(0, h/2), (0, -h/2)] ls
 
 {-| Horizontal line -}
-hline : Float -> C.LineStyle -> Diagram a
+hline : Float -> C.LineStyle -> Diagram t a
 hline w ls = path [(-w/2, 0), (w/2, 0)] ls
 
 -- Bezier curves
@@ -434,7 +391,7 @@ hline w ls = path [(-w/2, 0), (w/2, 0)] ls
 -- adapted from https://gist.github.com/irrwitz/968b9762819974c92c9f
 {-| Given four points a, cp1, cp2, b, return path diagram which is a bezier
 curve from a to b, using cp1 and cp2 as control points. -}
-bezier : Point -> Point -> Point -> Point -> C.LineStyle -> Diagram a
+bezier : Point -> Point -> Point -> Point -> C.LineStyle -> Diagram t a
 bezier a cp1 cp2 b ls = path (bezierCurve a cp1 cp2 b) ls
 
 bezierCurve : Point -> Point -> Point -> Point -> List Point
@@ -464,12 +421,12 @@ generate start end step = if | end <= start -> []
                              | otherwise -> [start] ++ generate (start + step) end step
 
 {-| Like `padAll`, but with same spacing on all sides. -}
-pad : Float -> Diagram a -> Diagram a
+pad : Float -> Diagram t a -> Diagram t a
 pad pd dia = padAll pd pd pd pd dia
 
 {-| Given four numbers up, down, left, and right, put an invisible spacer
 behind the given diagram, changing its envelope. -}
-padAll : Float -> Float -> Float -> Float -> Diagram a -> Diagram a
+padAll : Float -> Float -> Float -> Float -> Diagram t a -> Diagram t a
 padAll u d l r dia =
     let bbox = boundingBox dia
         paddedBbox = { up = bbox.up + u
@@ -481,7 +438,7 @@ padAll u d l r dia =
     in zcat [dia, padder]
 
 {-| Put a rectangle behind the given diagram, matching its bounding box. -}
-background : FillStroke -> Diagram a -> Diagram a
+background : FillStroke -> Diagram t a -> Diagram t a
 background fs dia = let transWH = bbox2transwh <| boundingBox dia
                         bg = move transWH.translate <| rect transWH.width transWH.height fs
                     in zcat [dia, bg]
@@ -525,12 +482,6 @@ invertTrans t = case t of
                   Scale factor -> Scale (1/factor)
                   Translate x y -> Translate (-x) (-y)
 
-firstNonempty : List (List a) -> List a
-firstNonempty l = case l of
-                    [] -> []
-                    []::xs -> firstNonempty xs
-                    x::xs -> x
-
 halfStrokeWidth : FillStroke -> Float
 halfStrokeWidth fs = case fs.stroke of
                        Just ls -> ls.width/2
@@ -545,26 +496,3 @@ halfStrokeWidth fs = case fs.stroke of
 -}
 lerp : (Float, Float) -> (Float, Float) -> Float -> Float
 lerp (omin, omax) (imin, imax) input = omin + (omax - omin) * (input - imin) / (imax - imin)
-
--- outside world utils
-
-toPoint : (Int, Int) -> Point
-toPoint (x, y) = (toFloat x, toFloat y)
-
-floatWindowDims = Signal.map toPoint Window.dimensions
-floatMousePos = Signal.map toPoint Mouse.position
-toCollageCoords (w, h) (x, y) = (x - w/2, h/2 - y)
-
-{-| Mouse position relative to the collage's origin (in the middle of the screen). -}
-collageMousePos : Signal Point
-collageMousePos = Signal.map2 toCollageCoords floatWindowDims floatMousePos
-
-fullWindowView : (Int, Int) -> Diagram a -> E.Element
-fullWindowView (w, h) d = C.collage w h [render d]
-
-{-| The easiest way to get a diagram on the screen:
-
-    main = fullWindowMain (rect 10 10 (justFill <| C.Solid Color.orange))
--}
-fullWindowMain : Diagram a -> Signal E.Element
-fullWindowMain dia = Signal.map (\size -> fullWindowView size dia) Window.dimensions
