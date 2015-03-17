@@ -1,6 +1,6 @@
 module GraphEditor where
 
-import Diagrams (..)
+import Diagrams.Core (..)
 import Graphics.Collage as C
 import Color
 import Text as T

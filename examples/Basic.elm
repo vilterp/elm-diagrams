@@ -1,38 +1,70 @@
 module Basic where
 
-import Diagrams (..)
-import Window
-import Mouse
 import Graphics.Element as E
 import Graphics.Collage as C
 import Signal
---import Mouse
+import Window
+
 import Color
 import Debug
 import Text as T
 import List as L
+
+-- whoooo all the moduless
+import Diagrams.Core (..)
+import Diagrams.Query (..)
+import Diagrams.Interact (..)
+import Diagrams.Wiring (..)
+import Diagrams.Geom (..)
+import Diagrams.Debug (..)
+import Diagrams.Align (..)
+import Diagrams.Pad (..)
+import Diagrams.Actions (..)
+import Diagrams.FillStroke (..)
+import Diagrams.FullWindow (..)
 
 type Tag = RectOrange
          | RectBlue
          | Circ
          | Textt
 
+type Action = ClickCirc Point
+            | EnterOrange Point
+            | LeaveOrange Point
+            | MoveBlue Point
+
 defLine = C.defaultLine
 
 testDia = let aPath = path [(-50,-50), (30, 100)] C.defaultLine
-              rectOrange = tag RectOrange <| rect 50 70 (fillAndStroke (C.Solid Color.orange) { defLine | width <- 20, cap <- C.Padded })
-              rectBlue = tag RectBlue <| rect 70 50 (justFill <| C.Solid Color.blue)
+              rectOrange = tagWithActions RectOrange
+                              { emptyActionSet | mouseEnter <- Just EnterOrange
+                                               , mouseLeave <- Just LeaveOrange }
+                              <| rect 50 70 (fillAndStroke (C.Solid Color.orange) { defLine | width <- 20, cap <- C.Padded })
+              rectBlue = tagWithActions RectBlue
+                              { emptyActionSet | mouseMove <- Just MoveBlue }
+                              <| rect 70 50 (justSolidFill Color.blue)
               rects = vcat [ rectOrange , rectBlue ]
-              circ = tag Circ <| circle 20 (justFill <| C.Solid Color.yellow)
-              someText = tag Textt <| text "Foo" (let ds = T.defaultStyle in {ds | bold <- True})
+              circ = tagWithActions Circ
+                            { emptyActionSet | click <- Just ClickCirc }
+                            <| circle 20 (fillAndStroke (C.Solid Color.yellow) { defLine | width <- 2, cap <- C.Padded })
+              justText = text "Foo" (let ds = T.defaultStyle in {ds | bold <- True})
+              someText = tag Textt <| background (justSolidFill Color.lightBlue) <| pad 5 <| justText
               stuff = circ `atop` (rectOrange `above` (rectBlue `beside` (circ `above` someText)))
               moreStuff = hcat <| L.intersperse circ (L.repeat 5 rectOrange)
-          in showOrigin <| showBBox <| alignCenter <|  (stuff `above` stuff `above` moreStuff)
+          in showOrigin <| showBBox <| alignCenter <| (stuff `above` stuff `above` moreStuff)
 
-view (w, h) (x, y) = C.collage w h [render testDia]
+type alias Model = ()
 
-over mousePt = Debug.watch "over" <| pick testDia (Debug.watch "mouse" mousePt)
+renderF : RenderFunc Model Tag Action
+renderF _ = testDia
 
-overSignal = Signal.map over collageMousePos
+updateF : UpdateFunc Model Action
+updateF _ m = m
 
-main = fullWindowMain testDia
+initModel : Model
+initModel = ()
+
+diagrams : Signal (Diagram Tag Action)
+diagrams = interactFold updateF renderF fullWindowCollageLoc initModel
+
+main = Signal.map2 fullWindowView Window.dimensions diagrams
