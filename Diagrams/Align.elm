@@ -28,7 +28,7 @@ are on a horizontal line and their envelopes touch. The origin of the new diagra
 is the origin of a. -}
 above : Diagram t a -> Diagram t a -> Diagram t a
 above a b = let yTrans = (envelope Down a) + (envelope Up b)
-              in Group [a, TransformD (Translate 0 -yTrans) b]
+            in Group [a, TransformD (Translate 0 -yTrans) b]
 
 {-| Given two diagrams a and b, stack a on top of b in the "out of page" axis,
 so a occludes b. -}
@@ -63,18 +63,18 @@ alignLeft dia = let leftEnv = envelope Left dia
 {-| Translate a diagram such that the origin is on the right edge of the bounding box -}
 alignRight : Diagram t a -> Diagram t a
 alignRight dia = let rightEnv = envelope Right dia
-                in moveX -rightEnv dia
+                 in moveX -rightEnv dia
 
 
 {-| Translate a diagram such that the origin is on the top edge of the bounding box -}
 alignTop : Diagram t a -> Diagram t a
 alignTop dia = let upEnv = envelope Up dia
-                in moveY -upEnv dia
+               in moveY -upEnv dia
 
 {-| Translate a diagram such that the origin is on the bottom edge of the bounding box -}
 alignBottom : Diagram t a -> Diagram t a
 alignBottom dia = let downEnv = envelope Down dia
-                in moveY downEnv dia
+                  in moveY downEnv dia
 
 {-| Translate a diagram such that the envelope in all directions is equal -}
 alignCenter : Diagram t a -> Diagram t a
