@@ -11,6 +11,9 @@ import Maybe as M
 import Graphics.Element as E
 
 import Diagrams.Core (..)
+import Diagrams.Geom (..)
+import Diagrams.Actions (..)
+import Diagrams.FillStroke (..)
 
 {-| (Tag, Coordinates) pairs from bottom of tree to top; result of
 calling `pick` (see below). -}
@@ -83,4 +86,3 @@ getCoords' diag path start =
           Group dias -> M.oneOf <| L.map (\d -> getCoords' d path start) dias
           TransformD trans dia -> getCoords' dia path (applyTrans trans start)
           _ -> Nothing
-

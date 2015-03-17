@@ -1,18 +1,26 @@
 module Basic where
 
-import Diagrams.Core (..)
-import Diagrams.Query (..)
-import Diagrams.Interact (..)
-import Window
-import Mouse
 import Graphics.Element as E
 import Graphics.Collage as C
 import Signal
---import Mouse
+
 import Color
 import Debug
 import Text as T
 import List as L
+
+-- whoooo all the moduless
+import Diagrams.Core (..)
+import Diagrams.Query (..)
+import Diagrams.Interact (..)
+import Diagrams.Wiring (..)
+import Diagrams.Geom (..)
+import Diagrams.Debug (..)
+import Diagrams.Align (..)
+import Diagrams.Pad (..)
+import Diagrams.Actions (..)
+import Diagrams.FillStroke (..)
+import Diagrams.FullWindow (..)
 
 type Tag = RectOrange
          | RectBlue
@@ -33,30 +41,31 @@ testDia = let aPath = path [(-50,-50), (30, 100)] C.defaultLine
                               <| rect 50 70 (fillAndStroke (C.Solid Color.orange) { defLine | width <- 20, cap <- C.Padded })
               rectBlue = tagWithActions RectBlue
                               { emptyActionSet | mouseMove <- Just MoveBlue }
-                              <| rect 70 50 (justFill <| C.Solid Color.blue)
+                              <| rect 70 50 (justSolidFill Color.blue)
               rects = vcat [ rectOrange , rectBlue ]
               circ = tagWithActions Circ
                             { emptyActionSet | click <- Just ClickCirc }
                             <| circle 20 (fillAndStroke (C.Solid Color.yellow) { defLine | width <- 2, cap <- C.Padded })
-              someText = tag Textt <| text "Foo" (let ds = T.defaultStyle in {ds | bold <- True})
+              justText = text "Foo" (let ds = T.defaultStyle in {ds | bold <- True})
+              someText = tag Textt <| background (justSolidFill Color.lightBlue) <| pad 5 <| justText
               stuff = circ `atop` (rectOrange `above` (rectBlue `beside` (circ `above` someText)))
               moreStuff = hcat <| L.intersperse circ (L.repeat 5 rectOrange)
-          in showOrigin <| showBBox <| alignCenter <|  (stuff `above` stuff `above` moreStuff)
+          in showOrigin <| showBBox <| alignCenter <| (stuff `above` stuff `above` moreStuff)
 
-view (w, h) (x, y) = C.collage w h [render testDia]
+type alias Model = ()
 
-locDia = Signal.map (\loc -> { loc = loc, diagram = testDia }) fullWindowCollageLoc
+renderF : RenderFunc Model Tag Action
+renderF _ _ = testDia
 
-updates : Signal (LocatedDiagram Tag Action, MouseEvent)
-updates = Signal.map2 (\loc mouseEvt -> ({loc = loc, diagram = testDia}, mouseEvt)) fullWindowCollageLoc (mouseEvents fullWindowCollageLoc)
+updateF : UpdateFunc Model Action
+updateF _ m = m
 
-upstate : (LocatedDiagram Tag Action, MouseEvent) -> MouseState Tag Action -> MouseState Tag Action
-upstate (ld, evt) mst = let (newMst, actions) = process ld mst evt
-                            watched = Debug.watch "actions" actions
-                            watched2 = Debug.watch "mst" newMst
-                        in newMst
+initModel : Model
+initModel = ()
 
-state : Signal (MouseState Tag Action)
-state = Signal.foldp upstate initMouseState updates
+initLoc = { offset = (0, 0), dims = { width=0, height=0 } }
 
-main = fullWindowMain testDia
+intStates : Signal (InteractionState Model Tag Action)
+intStates = interactFold updateF renderF fullWindowCollageLoc initModel initLoc
+
+main = Signal.map toCollage intStates

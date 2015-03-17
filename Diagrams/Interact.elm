@@ -1,7 +1,6 @@
 module Diagrams.Interact where
 
 {-| Abstractions for making diagrams which change as a function of the mouse.
-
 -}
 
 import Signal as S
@@ -14,18 +13,11 @@ import Graphics.Collage as C
 
 import Diagrams.Core (..)
 import Diagrams.Query (..)
+import Diagrams.Geom (..)
+import Diagrams.Actions (..)
+import Diagrams.Wiring (..)
 
 import Debug
-
-type alias MouseEvent = (MouseEvtType, Point)
-
-type MouseEvtType = MouseUp
-                  | MouseDown
-                  | MouseMove
-
--- TODO: tagging function easier than `tagWithAction tag { emptyActionSet | click <- Just ... } dia`?
--- like `clickable tag func dia` or something
--- or list of attributes like html
 
 -- BUG: if A is on top of and within B, entering A should not count as leaving B.
 -- shit, I guess the pick path should really be a pick tree. #@$@
@@ -33,17 +25,62 @@ type MouseEvtType = MouseUp
 -- TODO: keep both unzipped for perforance?
 type alias MouseState t a = { isDown : Bool, overPath : PickPath t a, overTags : List t }
 
-type alias LocatedDiagram t a = { diagram : Diagram t a, loc : CollageLocation }
-
-type alias CollageLocation = { offset : Point, dimensions : Point }
-
 initMouseState = { isDown = False, overPath = [], overTags = [] }
 
--- TODO: factor out all the `(\(_, as, pt) -> (pt, as.mouseEnter))`'s.
+type alias InteractionState m t a =
+    { mouseState : MouseState t a
+    , loc : CollageLocation
+    , diagram : Diagram t a
+    , modelState : m
+    }
+
+type alias RenderFunc m t a = m -> Dims -> Diagram t a
+type alias UpdateFunc m a = a -> m -> m
+type alias InteractUpdateFunc m t a = (CollageLocation, MouseEvent) -> InteractionState m t a -> InteractionState m t a
+
+{-| Top-level interface to this module. Given
+- how to update the state (type `m`) given an action (type `a`),
+- how to render a diagram given the state and the collage dimensions,
+- and how to compute the location of the collage on screen from the window dimensions,
+Return a signal of diagrams.
+-}
+interactFold : UpdateFunc m a -> RenderFunc m t a -> CollageLocFunc -> m -> CollageLocation -> Signal (InteractionState m t a)
+interactFold updateF renderF collageLocF initModel initLoc =
+    S.foldp (makeFoldUpdate updateF renderF)
+            (initInteractState renderF initModel initLoc)
+            (makeUpdateStream collageLocF)
+
+makeFoldUpdate : UpdateFunc m a -> RenderFunc m t a -> InteractUpdateFunc m t a
+makeFoldUpdate updateF renderF =
+    \(loc, evt) intState ->
+        let (newMS, actions) = processMouseEvent intState.diagram intState.mouseState evt
+            watched = Debug.watch "actions" actions
+            -- new model
+            oldModel = intState.modelState
+            newModel = L.foldr updateF oldModel actions
+            -- re-render
+            oldDiagram = intState.diagram
+            newDiagram = if oldModel == newModel
+                         then oldDiagram
+                         else renderF newModel loc.dims
+        in { mouseState = newMS
+           , diagram = newDiagram
+           , loc = loc
+           , modelState = newModel
+           }
+
+initInteractState : RenderFunc m t a -> m -> CollageLocation -> InteractionState m t a
+initInteractState render model loc =
+    { mouseState = initMouseState
+    , modelState = model
+    , loc = loc
+    , diagram = render model loc.dims
+    }
+
 {-| Given diagram with mouse state (`MouseDiagram`), mouse event, and dimensions of collage, return
 new `MouseDiagram` with list of actions triggered by this mouse event. -}
-process : LocatedDiagram t a -> MouseState t a -> MouseEvent -> (MouseState t a, List a)
-process ldia mouseState (evt, mousePos) =
+processMouseEvent : Diagram t a -> MouseState t a -> MouseEvent -> (MouseState t a, List a)
+processMouseEvent diagram mouseState (evt, mousePos) =
     let applyActions = L.map (\(pt, e2a) -> e2a pt)
     in case evt of
          MouseDown -> let actions = L.filterMap (getOffsetAndMember .mouseDown) <| mouseState.overPath
@@ -51,12 +88,12 @@ process ldia mouseState (evt, mousePos) =
                          , applyActions actions
                          )
          MouseUp -> let mouseUps = L.filterMap (getOffsetAndMember .mouseUp) mouseState.overPath
-                        clicks = Debug.watch "clicks" <| L.filterMap (getOffsetAndMember .click) mouseState.overPath
+                        clicks = L.filterMap (getOffsetAndMember .click) mouseState.overPath
                     in ( { mouseState | isDown <- False }
                        , applyActions <| mouseUps ++ clicks
                        )
          MouseMove -> let -- hate to build set like this on every move
-                          overPath = pick ldia.diagram mousePos
+                          overPath = pick diagram mousePos
                           oldOverPath = mouseState.overPath
                           -- sets of tags of elements mouse has left or entered
                           overTags = L.map .tag overPath
@@ -73,51 +110,13 @@ process ldia mouseState (evt, mousePos) =
                          , applyActions <| enters ++ leaves ++ moves
                          )
 
--- helper for process
+-- helper for processMouseEvent
 getOffsetAndMember : (ActionSet a -> Maybe (EventToAction a)) -> PickPathElem t a -> Maybe (Point, EventToAction a)
 getOffsetAndMember getMember ppe = case getMember ppe.actionSet of
                                      Just e2a -> Just (ppe.offset, e2a)
                                      Nothing -> Nothing
 
--- TODO: make easy to drop into foldp
-
--- outside world utils
-
-mouseEvents : Signal CollageLocation -> Signal MouseEvent
-mouseEvents loc =
-    let upDown = S.map (\down -> if down then MouseDown else MouseUp) Mouse.isDown
-        moves = S.map (always MouseMove) Mouse.position
-        events = S.merge upDown moves
-        adjustedMousePos = S.map2 offsetMousePos loc floatMousePos
-    in S.map2 (,) events adjustedMousePos
-
-{-| Given the position of the top-left of a collage (from the top-left of the screen; coords increasing right and down)
-and the dimensions of the collage, return a signal of the mouse position relative to the center of that collage.
-(Doesn't actually have to be a collage) -}
-offsetMousePos : CollageLocation -> Point -> Point
-offsetMousePos loc (x, y) = let (offsetX, offsetY) = loc.offset
-                                (width, height) = loc.dimensions
-                            in (x - width/2 - offsetX, (height/2 + offsetY) - y)
-
-fullWindowCollageLoc : Signal CollageLocation
-fullWindowCollageLoc = S.map (\dims -> { offset = (0.0,0.0), dimensions = dims }) floatWindowDims
-
-fullWindowMousePos = S.map2 offsetMousePos fullWindowCollageLoc floatMousePos
-
-{-| The easiest way to get a diagram on the screen:
-
-    main = fullWindowMain (rect 10 10 (justFill <| C.Solid Color.orange))
--}
-fullWindowMain : Diagram t a -> Signal E.Element
-fullWindowMain dia = S.map (\dims -> fullWindowView dims dia) Window.dimensions
-
-fullWindowView : (Int, Int) -> Diagram t a -> E.Element
-fullWindowView (w, h) d = C.collage w h [render d]
-
--- most basic stuff
-
-toPoint : (Int, Int) -> Point
-toPoint (x, y) = (toFloat x, toFloat y)
-
-floatMousePos = S.map toPoint Mouse.position
-floatWindowDims = S.map toPoint Window.dimensions
+toCollage : InteractionState m t a -> E.Element
+toCollage intState = let w = round intState.loc.dims.width
+                         h = round intState.loc.dims.height
+                     in C.collage w h [render intState.diagram]

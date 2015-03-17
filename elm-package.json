@@ -7,8 +7,20 @@
         "."
     ],
     "exposed-modules": [
-        "Diagrams",
-        "Diagrams.Interact"
+        "Diagrams.Actions",
+        "Diagrams.Align",
+        "Diagrams.Bezier",
+        "Diagrams.Core",
+        "Diagrams.Debug",
+        "Diagrams.Envelope",
+        "Diagrams.FillStroke",
+        "Diagrams.FullWindow",
+        "Diagrams.Geom",
+        "Diagrams.Interact",
+        "Diagrams.Layout",
+        "Diagrams.Pad",
+        "Diagrams.Query",
+        "Diagrams.Wiring"
     ],
     "dependencies": {
         "elm-lang/core": "1.1.0 <= v < 2.0.0"
