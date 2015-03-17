@@ -102,8 +102,7 @@ processMouseEvent diagram mouseState (evt, mousePos) =
                     in ( { mouseState | isDown <- False }
                        , applyActions <| mouseUps ++ clicks
                        )
-         MouseMove -> let -- hate to build set like this on every move
-                          overPath = pick diagram mousePos
+         MouseMove -> let overPath = pick diagram mousePos
                           oldOverPath = mouseState.overPath
                           -- sets of tags of elements mouse has left or entered
                           overTags = L.map .tag overPath
