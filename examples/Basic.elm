@@ -56,7 +56,7 @@ testDia = let aPath = path [(-50,-50), (30, 100)] C.defaultLine
 type alias Model = ()
 
 renderF : RenderFunc Model Tag Action
-renderF _ _ = testDia
+renderF _ = testDia
 
 updateF : UpdateFunc Model Action
 updateF _ m = m
@@ -64,9 +64,7 @@ updateF _ m = m
 initModel : Model
 initModel = ()
 
-initLoc = { offset = (0, 0), dims = { width=0, height=0 } }
-
 diagrams : Signal (Diagram Tag Action)
-diagrams = interactFold updateF renderF fullWindowCollageLoc initModel initLoc
+diagrams = interactFold updateF renderF fullWindowCollageLoc initModel
 
 main = Signal.map2 fullWindowView Window.dimensions diagrams

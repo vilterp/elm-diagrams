@@ -29,12 +29,11 @@ initMouseState = { isDown = False, overPath = [], overTags = [] }
 
 type alias InteractionState m t a =
     { mouseState : MouseState t a
-    , loc : CollageLocation
     , diagram : Diagram t a
     , modelState : m
     }
 
-type alias RenderFunc m t a = m -> Dims -> Diagram t a
+type alias RenderFunc m t a = m -> Diagram t a
 type alias UpdateFunc m a = a -> m -> m
 type alias InteractUpdateFunc m t a = (CollageLocation, MouseEvent) -> InteractionState m t a -> InteractionState m t a
 
@@ -44,10 +43,10 @@ type alias InteractUpdateFunc m t a = (CollageLocation, MouseEvent) -> Interacti
 - and how to compute the location of the collage on screen from the window dimensions,
 Return a signal of diagrams.
 -}
-interactFold : UpdateFunc m a -> RenderFunc m t a -> CollageLocFunc -> m -> CollageLocation -> Signal (Diagram t a)
-interactFold updateF renderF collageLocF initModel initLoc =
+interactFold : UpdateFunc m a -> RenderFunc m t a -> CollageLocFunc -> m -> Signal (Diagram t a)
+interactFold updateF renderF collageLocF initModel =
     let states = S.foldp (makeFoldUpdate updateF renderF)
-                         (initInteractState renderF initModel initLoc)
+                         (initInteractState renderF initModel)
                          (makeUpdateStream collageLocF)
     in S.map .diagram states
 
@@ -63,19 +62,17 @@ makeFoldUpdate updateF renderF =
             oldDiagram = intState.diagram
             newDiagram = if oldModel == newModel
                          then oldDiagram
-                         else renderF newModel loc.dims
+                         else renderF newModel
         in { mouseState = newMS
            , diagram = newDiagram
-           , loc = loc
            , modelState = newModel
            }
 
-initInteractState : RenderFunc m t a -> m -> CollageLocation -> InteractionState m t a
-initInteractState render model loc =
+initInteractState : RenderFunc m t a -> m -> InteractionState m t a
+initInteractState render model =
     { mouseState = initMouseState
     , modelState = model
-    , loc = loc
-    , diagram = render model loc.dims
+    , diagram = render model
     }
 
 {-| Given diagram with mouse state (`MouseDiagram`), mouse event, and dimensions of collage, return
