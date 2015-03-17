@@ -51,7 +51,7 @@ type alias InteractUpdateFunc m t a = (CollageLocation, MouseEvent) -> Interacti
 
 {-| Top-level interface to this module. Given
 - how to update the state (type `m`) given an action (type `a`),
-- how to render a diagram given the state and the collage dimensions,
+- how to render a diagram given the state,
 - and how to compute the location of the collage on screen from the window dimensions,
 Return a signal of diagrams.
 -}
