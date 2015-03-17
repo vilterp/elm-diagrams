@@ -17,7 +17,6 @@
         "Diagrams.FullWindow",
         "Diagrams.Geom",
         "Diagrams.Interact",
-        "Diagrams.Layout",
         "Diagrams.Pad",
         "Diagrams.Query",
         "Diagrams.Wiring"
