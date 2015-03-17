@@ -1,6 +1,9 @@
 module LanguageViz where
 
-import Diagrams (..)
+import Diagrams.Core (..)
+import Diagrams.Align (..)
+import Diagrams.FillStroke (..)
+import Diagrams.FullWindow (..)
 import Window
 import Mouse
 import Signal as S
@@ -36,15 +39,15 @@ keywordStyle = { defTextStyle | color <- C.orange
 
 hSpacer = hspace 7
 
-keyword : String -> Diagram a
+keyword : String -> Diagram t a
 keyword kw = text kw keywordStyle
 
-varDia : String -> Diagram a
+varDia : String -> Diagram t a
 varDia v = text v varStyle
 
 -- VIEW
 
-view : Expr -> Diagram a
+view : Expr -> Diagram t a
 view expr =
   case expr of
     IntLit x -> text (toString x) intLitStyle
@@ -54,33 +57,36 @@ view expr =
     Ap func args -> let comma = text "," defTextStyle
                         argsViews = L.map view args
                         allArgs = hcat <| L.intersperse comma argsViews
-                    in hcat <| [view func,
-                                  text "(" defTextStyle,
-                                  allArgs,
-                                  text ")" defTextStyle]
+                    in hcat [ view func
+                            , text "(" defTextStyle
+                            , allArgs
+                            , text ")" defTextStyle
+                            ]
     IfExpr cond tbranch fbranch ->
         alignLeft [ hcat [keyword "if", hSpacer, view cond]
-                    , hcat [keyword "then", hSpacer, view tbranch]
-                    , hcat [keyword "else", hSpacer, view fbranch]
-                    ]
+                  , hcat [keyword "then", hSpacer, view tbranch]
+                  , hcat [keyword "else", hSpacer, view fbranch]
+                  ]
     LetExpr bindings expr -> let eq = keyword "="
                                  binding (name, exp) = hcat [varDia name, hSpacer, eq, hSpacer, view exp]
                                  bindingDias = L.map binding bindings
                              in alignLeft [ hcat [keyword "let", hSpacer, vcat bindingDias]
-                                            , hcat [keyword "in", hSpacer, view expr] ]
+                                          , hcat [keyword "in", hSpacer, view expr]
+                                          ]
 
 -- TEST DATA
 
 expr = LetExpr [ ("foo", IntLit 62)
                , ("bar", StringLit "Elm is cool")
-               , ("baz", IntLit 57) ]
+               , ("baz", IntLit 57)
+               ]
                (IfExpr
-                  (Ap (Variable "foo") [(IntLit 2), (Variable "x")])
-                  (StringLit "yes")
-                  (StringLit "no"))
+                 (Ap (Variable "foo") [(IntLit 2), (Variable "x")])
+                 (StringLit "yes")
+                 (StringLit "no"))
 
 -- INVOCATION
 
-dia = view expr
+dia = alignCenter <| view expr
 
 main = fullWindowMain dia
