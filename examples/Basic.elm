@@ -3,6 +3,7 @@ module Basic where
 import Graphics.Element as E
 import Graphics.Collage as C
 import Signal
+import Window
 
 import Color
 import Debug
@@ -65,7 +66,7 @@ initModel = ()
 
 initLoc = { offset = (0, 0), dims = { width=0, height=0 } }
 
-intStates : Signal (InteractionState Model Tag Action)
-intStates = interactFold updateF renderF fullWindowCollageLoc initModel initLoc
+diagrams : Signal (Diagram Tag Action)
+diagrams = interactFold updateF renderF fullWindowCollageLoc initModel initLoc
 
-main = Signal.map toCollage intStates
+main = Signal.map2 fullWindowView Window.dimensions diagrams

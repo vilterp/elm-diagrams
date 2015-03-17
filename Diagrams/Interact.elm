@@ -44,11 +44,12 @@ type alias InteractUpdateFunc m t a = (CollageLocation, MouseEvent) -> Interacti
 - and how to compute the location of the collage on screen from the window dimensions,
 Return a signal of diagrams.
 -}
-interactFold : UpdateFunc m a -> RenderFunc m t a -> CollageLocFunc -> m -> CollageLocation -> Signal (InteractionState m t a)
+interactFold : UpdateFunc m a -> RenderFunc m t a -> CollageLocFunc -> m -> CollageLocation -> Signal (Diagram t a)
 interactFold updateF renderF collageLocF initModel initLoc =
-    S.foldp (makeFoldUpdate updateF renderF)
-            (initInteractState renderF initModel initLoc)
-            (makeUpdateStream collageLocF)
+    let states = S.foldp (makeFoldUpdate updateF renderF)
+                         (initInteractState renderF initModel initLoc)
+                         (makeUpdateStream collageLocF)
+    in S.map .diagram states
 
 makeFoldUpdate : UpdateFunc m a -> RenderFunc m t a -> InteractUpdateFunc m t a
 makeFoldUpdate updateF renderF =
@@ -115,8 +116,3 @@ getOffsetAndMember : (ActionSet a -> Maybe (EventToAction a)) -> PickPathElem t 
 getOffsetAndMember getMember ppe = case getMember ppe.actionSet of
                                      Just e2a -> Just (ppe.offset, e2a)
                                      Nothing -> Nothing
-
-toCollage : InteractionState m t a -> E.Element
-toCollage intState = let w = round intState.loc.dims.width
-                         h = round intState.loc.dims.height
-                     in C.collage w h [render intState.diagram]
