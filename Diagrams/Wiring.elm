@@ -1,5 +1,17 @@
 module Diagrams.Wiring where
 
+{-| Functions and types for getting a (possibly interactive) diagram onto the screen.
+
+# Types
+@docs CollageLocation, MouseEvent, MouseEvtType, CollageLocFunc
+
+# Functions
+@docs makeUpdateStream, mouseEvents, offsetMousePos
+
+# Input Signals
+@docs floatMousePos, floatWindowDims
+-}
+
 import Signal as S
 import Mouse
 import Window
@@ -17,9 +29,14 @@ type MouseEvtType = MouseUp
                   | MouseDown
                   | MouseMove
 
+{-| Given window size, where on screen and how big is your collage? -}
 type alias CollageLocFunc = Dims -> CollageLocation
 
 -- TODO: clip events that aren't within the collage loc
+
+{-| Given collage location function, return stream of (collage location, mouse event)
+pairs, where mouse coordinates are relative to the center of the collage at its present
+location, and increasing up and to the right. -}
 makeUpdateStream : CollageLocFunc -> Signal (CollageLocation, MouseEvent)
 makeUpdateStream clf =
     let collageLocs = S.map clf floatWindowDims
@@ -35,8 +52,8 @@ mouseEvents loc =
     in S.map2 (,) events adjustedMousePos
 
 {-| Given the position of the top-left of a collage (from the top-left of the screen; coords increasing right and down)
-and the dimensions of the collage, return a signal of the mouse position relative to the center of that collage.
-(Doesn't actually have to be a collage) -}
+and the dimensions of the collage, return a signal of the mouse position relative to the center of that collage,
+and increasing up and to the right instead of down and to the right. -}
 offsetMousePos : CollageLocation -> Point -> Point
 offsetMousePos loc (x, y) = let (offsetX, offsetY) = loc.offset
                                 {width, height} = loc.dims

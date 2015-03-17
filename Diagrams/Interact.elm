@@ -1,6 +1,18 @@
 module Diagrams.Interact where
 
 {-| Abstractions for making diagrams which change as a function of the mouse.
+
+# Function Types
+@docs RenderFunc, UpdateFunc, InteractUpdateFunc
+
+# Interaction
+@docs InteractionState, initInteractionState, interactFold, makeFoldUpdate
+
+# Mouse Event Processing
+@docs processMouseEvent
+
+# Mouse State
+@docs MouseState, initMouseState
 -}
 
 import Signal as S

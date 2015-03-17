@@ -1,5 +1,11 @@
 module Diagrams.Bezier where
 
+{-| Generate bezier paths as lists of points.
+Adapted from [this gist](https://gist.github.com/irrwitz/968b9762819974c92c9f).
+
+@docs bezier
+-}
+
 import Graphics.Collage as C
 
 import Diagrams.Core (..)
@@ -7,7 +13,6 @@ import Diagrams.Geom (..)
 
 -- TODO: replace this entire module/approach with builtin arcs...
 
--- adapted from https://gist.github.com/irrwitz/968b9762819974c92c9f
 {-| Given four points a, cp1, cp2, b, return path diagram which is a bezier
 curve from a to b, using cp1 and cp2 as control points. -}
 bezier : Point -> Point -> Point -> Point -> C.LineStyle -> Diagram a

@@ -1,5 +1,10 @@
 module Diagrams.Actions where
 
+{-| A type for attaching mouse actions to diagrams.
+
+@docs ActionSet, EventToAction, emptyActionSet
+-}
+
 import Diagrams.Geom (..)
 
 -- TODO: tagging function easier than `tagWithAction tag { emptyActionSet | click <- Just ... } dia`?
@@ -15,6 +20,7 @@ type alias ActionSet a =
     , mouseDown : Maybe (EventToAction a)
     , mouseUp : Maybe (EventToAction a)
     }
+
 emptyActionSet =
     { click = Nothing
     , mouseEnter = Nothing

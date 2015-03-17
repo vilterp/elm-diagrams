@@ -29,34 +29,19 @@ version is missing a lot of features and generality.
  [hd-tut]: http://projects.haskell.org/diagrams/doc/quickstart.html
 
 # Basic Types
-@docs Diagram, Point, PathType
+@docs Diagram, PathType
 
 # Constructors
-@docs circle, rect, path, polygon, text, spacer, transform, group, tag, ngon, eqTriangle
+@docs circle, rect, path, polygon, text, spacer, transform, group, tag, tagWithActions, ngon, eqTriangle
 
 # Basic Transforms
 @docs move, moveX, moveY, scale, rotate
 
-# Rendering and Debugging
-@docs render, showBBox, showOrigin, outlineBox
-
-# Properties and Querying
-@docs Direction, envelope, width, height
-
-# Relative Positioning
-@docs beside, above, atop, hcat, vcat, zcat, alignLeft, alignCenter
+# Rendering
+@docs render
 
 # Composition Utilities
-@docs empty, vspace, hspace, vline, hline, pad, padAll, background
-
-# Styles
-@docs FillStroke, justFill, justStroke, fillAndStroke, invisible
-
-# Bezier curves
-@docs bezier
-
-# Geometry Utilities
-@docs Transform, applyTrans, invertTrans, magnitude, lerp
+@docs empty, vspace, hspace, vline, hline
 
 -}
 
@@ -129,12 +114,13 @@ on top of one another. This is the same as `zcat`. -}
 group : List (Diagram t a) -> Diagram t a
 group = Group
 
-{-| Return a Tag node with the given Diagram t as its sole child. Adding this to the 
+{-| Return a Tag node with the given Diagram as its sole child. Adding this to the 
 diagram tree is useful for picking and getting coordinates. -}
 tag : t -> Diagram t a -> Diagram t a
 tag t dia = Tag t emptyActionSet dia
 
--- TODO: move to Interact? would be nice not to require tag
+{-| Return a Tag node with the given Diagram as its sole child, holding both
+a tag and an action set. -}
 tagWithActions : t -> ActionSet a -> Diagram t a -> Diagram t a
 tagWithActions = Tag
 
@@ -169,7 +155,7 @@ moveY y = move (0, y)
 scale : Float -> Diagram t a -> Diagram t a
 scale s d = TransformD (Scale s) d
 
--- rendering and debugging
+-- rendering
 
 render : Diagram t a -> C.Form
 render d = let handleFS fs pathType shape =

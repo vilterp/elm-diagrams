@@ -17,7 +17,7 @@ sierpinski n sl = case n of
                                           (alignCenter <| smaller `beside` smaller)
 
 -- not spinning
-main = fullWindowMain <| alignCenter <| sierpinski 3 20
+main = fullWindowMain <| showOrigin <| showBBox <| alignCenter <| sierpinski 3 20
 
 -- spinning
 --main = let sier = sierpinski 5 10

@@ -1,5 +1,10 @@
 module Diagrams.FullWindow where
 
+{-| Utilities for when you just want to get a diagram on the whole screen.
+
+@docs fullWindowCollageLoc, fullWindowUpdates, fullWindowMain, fullWindowView
+-}
+
 import Window
 import Signal as S
 import Graphics.Element as E
@@ -7,9 +12,6 @@ import Graphics.Collage as C
 
 import Diagrams.Wiring (..)
 import Diagrams.Core (..)
-
--- useful defaults
--- for when you just want to get a diagram on the whole screen
 
 fullWindowCollageLoc : CollageLocFunc
 fullWindowCollageLoc dims = { offset = (0.0,0.0), dims = dims }

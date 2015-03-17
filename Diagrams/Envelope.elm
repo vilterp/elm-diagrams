@@ -1,5 +1,9 @@
 module Diagrams.Envelope where
 
+{-|
+@docs Direction, envelope, width, height, boundingBox
+-}
+
 import List as L
 import Graphics.Element as E
 
