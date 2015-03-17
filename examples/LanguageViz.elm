@@ -63,16 +63,16 @@ view expr =
                             , text ")" defTextStyle
                             ]
     IfExpr cond tbranch fbranch ->
-        alignLeft [ hcat [keyword "if", hSpacer, view cond]
-                  , hcat [keyword "then", hSpacer, view tbranch]
-                  , hcat [keyword "else", hSpacer, view fbranch]
-                  ]
+        vcatA LeftA [ hcat [keyword "if", hSpacer, view cond]
+                    , hcat [keyword "then", hSpacer, view tbranch]
+                    , hcat [keyword "else", hSpacer, view fbranch]
+                    ]
     LetExpr bindings expr -> let eq = keyword "="
                                  binding (name, exp) = hcat [varDia name, hSpacer, eq, hSpacer, view exp]
                                  bindingDias = L.map binding bindings
-                             in alignLeft [ hcat [keyword "let", hSpacer, vcat bindingDias]
-                                          , hcat [keyword "in", hSpacer, view expr]
-                                          ]
+                             in vcatA LeftA [ hcat [keyword "let", hSpacer, vcat bindingDias]
+                                            , hcat [keyword "in", hSpacer, view expr]
+                                            ]
 
 -- TEST DATA
 

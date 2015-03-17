@@ -31,7 +31,7 @@ padSpecific u d l r dia =
 
 {-| Like `paddSpecific`, but with same spacing on all sides. -}
 pad : Float -> Diagram t a -> Diagram t a
-pad pd dia = paddSpecific pd pd pd pd dia
+pad pd dia = padSpecific pd pd pd pd dia
 
 {-| Put a rectangle behind the given diagram, matching its bounding box. -}
 background : FillStroke -> Diagram t a -> Diagram t a
