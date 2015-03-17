@@ -1,20 +1,41 @@
 module Diagrams.Align where
 
+{-|
+# Relative Positioning
+@docs beside, above, atop, hcat, vcat, zcat
+
+# Alignment
+@docs alignLeft, alignRight, alignTop, alignBottom, alignCenter
+-}
+
 import List as L
 
 import Diagrams.Core (..)
 import Diagrams.Geom (..)
 import Diagrams.Envelope (..)
 
-{-| Stack diagrams vertically (as with `vcat`), such that their left edges align.
-The origin of the resulting diagram is the origin of the first diagram. -}
-alignLeft : List (Diagram t a) -> Diagram t a
-alignLeft dias = let leftEnvelopes = L.map (envelope Left) dias
-                     maxLE = L.maximum leftEnvelopes
-                     moved = L.map2 (\dia le -> moveX -(maxLE - le) dia) dias leftEnvelopes
-                 in vcat moved
+{-| Translate a diagram such that the origin is on the left edge of the bounding box -}
+alignLeft : Diagram t a -> Diagram t a
+alignLeft dia = let leftEnv = envelope Left dia
+                in moveX leftEnv dia
 
-{-| translate a diagram such that the envelope in all directions is equal -}
+{-| Translate a diagram such that the origin is on the right edge of the bounding box -}
+alignRight : Diagram t a -> Diagram t a
+alignRight dia = let rightEnv = envelope Right dia
+                in moveX -rightEnv dia
+
+
+{-| Translate a diagram such that the origin is on the top edge of the bounding box -}
+alignTop : Diagram t a -> Diagram t a
+alignTop dia = let upEnv = envelope Up dia
+                in moveY -upEnv dia
+
+{-| Translate a diagram such that the origin is on the bottom edge of the bounding box -}
+alignBottom : Diagram t a -> Diagram t a
+alignBottom dia = let downEnv = envelope Down dia
+                in moveY downEnv dia
+
+{-| Translate a diagram such that the envelope in all directions is equal -}
 alignCenter : Diagram t a -> Diagram t a
 alignCenter dia = let left = envelope Left dia
                       right = envelope Right dia
@@ -54,6 +75,8 @@ their origins are along a vertical line. The first element in the list will
 be on the top; the last on the bottom. -}
 vcat : List (Diagram t a) -> Diagram t a
 vcat = L.foldr above empty
+
+-- TODO: vcat and hcat with alignments (https://hackage.haskell.org/package/diagrams-0.2.2.1/docs/Graphics-Rendering-Diagrams-Layouts.html#2)
 
 {-| Place a list of diagrams on top of each other, with their origin points
 stacked on the "out of page" axis. The first diagram in the list is on top.

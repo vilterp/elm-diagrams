@@ -1,5 +1,9 @@
 module Diagrams.FillStroke where
 
+{-|
+@docs FillStroke, justFill, justStroke, fillAndStroke, invisible, justSolidFill
+-}
+
 import Graphics.Collage as C
 import Color
 

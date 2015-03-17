@@ -1,5 +1,13 @@
 module Diagrams.Geom where
 
+{-|
+# Geometry Utilities
+@docs Transform, Point, applyTrans, invertTrans, magnitude, lerp
+
+# Boxes
+@docs BBox, OffsetDimsBox, Dims, bbox2offsetDims
+-}
+
 type alias Point = (Float, Float)
 
 type Transform

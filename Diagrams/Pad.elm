@@ -1,5 +1,9 @@
 module Diagrams.Pad where
 
+{-|
+@docs padSpecific, pad, background, outlineBox
+-}
+
 -- TODO: maybe make this a little more like the CSS box model (border, padding, margin)
 -- and give it a name evocative of that
 
@@ -11,14 +15,11 @@ import Diagrams.Envelope (..)
 import Diagrams.Geom (..)
 import Diagrams.FillStroke (..)
 
-{-| Like `padAll`, but with same spacing on all sides. -}
-pad : Float -> Diagram t a -> Diagram t a
-pad pd dia = padAll pd pd pd pd dia
-
+-- TODO: better name...?
 {-| Given four numbers up, down, left, and right, put an invisible spacer
 behind the given diagram, changing its envelope. -}
-padAll : Float -> Float -> Float -> Float -> Diagram t a -> Diagram t a
-padAll u d l r dia =
+padSpecific : Float -> Float -> Float -> Float -> Diagram t a -> Diagram t a
+padSpecific u d l r dia =
     let bbox = boundingBox dia
         paddedBbox = { up = bbox.up + u
                      , down = bbox.down + d
@@ -27,6 +28,10 @@ padAll u d l r dia =
         offsetDims = bbox2offsetDims paddedBbox
         padder = move (offsetDims.offset) <| spacer (offsetDims.dims.width) (offsetDims.dims.height)
     in zcat [dia, padder]
+
+{-| Like `paddSpecific`, but with same spacing on all sides. -}
+pad : Float -> Diagram t a -> Diagram t a
+pad pd dia = paddSpecific pd pd pd pd dia
 
 {-| Put a rectangle behind the given diagram, matching its bounding box. -}
 background : FillStroke -> Diagram t a -> Diagram t a

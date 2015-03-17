@@ -1,5 +1,10 @@
 module Diagrams.Debug where
 
+{-| Utilities for debugging alignment issues, etc.
+
+@docs showBBox, showOrigin
+-}
+
 import Graphics.Collage as C
 import Color
 
