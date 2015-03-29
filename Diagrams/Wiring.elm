@@ -25,9 +25,9 @@ type alias CollageLocation = OffsetDimsBox
 
 type alias MouseEvent = (MouseEvtType, Point)
 
-type MouseEvtType = MouseUp
-                  | MouseDown
-                  | MouseMove
+type MouseEvtType = MouseUpEvt
+                  | MouseDownEvt
+                  | MouseMoveEvt
 
 {-| Given window size, where on screen and how big is your collage? -}
 type alias CollageLocFunc = Dims -> CollageLocation
@@ -45,8 +45,8 @@ makeUpdateStream clf =
 
 mouseEvents : Signal CollageLocation -> Signal MouseEvent
 mouseEvents loc =
-    let upDown = S.map (\down -> if down then MouseDown else MouseUp) Mouse.isDown
-        moves = S.map (always MouseMove) Mouse.position
+    let upDown = S.map (\down -> if down then MouseDownEvt else MouseUpEvt) Mouse.isDown
+        moves = S.map (always MouseMoveEvt) Mouse.position
         events = S.merge upDown moves
         adjustedMousePos = S.map2 offsetMousePos loc floatMousePos
     in S.map2 (,) events adjustedMousePos

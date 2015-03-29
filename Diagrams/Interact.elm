@@ -87,37 +87,38 @@ initInteractState render model =
     , diagram = render model
     }
 
+-- TODO: fix these docs vv
 {-| Given diagram with mouse state (`MouseDiagram`), mouse event, and dimensions of collage, return
 new `MouseDiagram` with list of actions triggered by this mouse event. -}
 processMouseEvent : Diagram t a -> MouseState t a -> MouseEvent -> (MouseState t a, List a)
 processMouseEvent diagram mouseState (evt, mousePos) =
     let applyActions = L.map (\(pt, e2a) -> e2a pt)
     in case evt of
-         MouseDown -> let actions = L.filterMap (getOffsetAndMember .mouseDown) <| mouseState.overPath
-                      in ( { mouseState | isDown <- True }
-                         , applyActions actions
-                         )
-         MouseUp -> let mouseUps = L.filterMap (getOffsetAndMember .mouseUp) mouseState.overPath
-                        clicks = L.filterMap (getOffsetAndMember .click) mouseState.overPath
-                    in ( { mouseState | isDown <- False }
-                       , applyActions <| mouseUps ++ clicks
-                       )
-         MouseMove -> let overPath = pick diagram mousePos
-                          oldOverPath = mouseState.overPath
-                          -- sets of tags of elements mouse has left or entered
-                          overTags = L.map .tag overPath
-                          oldOverTags = mouseState.overTags
-                          -- action sets corresponding to these tags
-                          enters = L.filterMap (getOffsetAndMember .mouseEnter) <|
-                                      L.filter (\ppe -> not <| L.member ppe.tag oldOverTags) overPath
-                          leaves = L.filterMap (getOffsetAndMember .mouseLeave) <|
-                                      L.filter (\ppe -> not <| L.member ppe.tag overTags) oldOverPath
-                          moves = L.filterMap (getOffsetAndMember .mouseMove) <|
-                                      L.filter (\ppe -> L.member ppe.tag oldOverTags) overPath
-                      in ( { mouseState | overPath <- overPath
-                                        , overTags <- overTags }
-                         , applyActions <| enters ++ leaves ++ moves
-                         )
+         MouseDownEvt -> let actions = L.filterMap (getOffsetAndMember .mouseDown) <| mouseState.overPath
+                         in ( { mouseState | isDown <- True }
+                            , applyActions actions
+                            )
+         MouseUpEvt -> let mouseUps = L.filterMap (getOffsetAndMember .mouseUp) mouseState.overPath
+                           clicks = L.filterMap (getOffsetAndMember .click) mouseState.overPath
+                       in ( { mouseState | isDown <- False }
+                          , applyActions <| mouseUps ++ clicks
+                          )
+         MouseMoveEvt -> let overPath = pick diagram mousePos
+                             oldOverPath = mouseState.overPath
+                             -- sets of tags of elements mouse has left or entered
+                             overTags = L.map .tag overPath
+                             oldOverTags = mouseState.overTags
+                             -- action sets corresponding to these tags
+                             enters = L.filterMap (getOffsetAndMember .mouseEnter) <|
+                                         L.filter (\ppe -> not <| L.member ppe.tag oldOverTags) overPath
+                             leaves = L.filterMap (getOffsetAndMember .mouseLeave) <|
+                                         L.filter (\ppe -> not <| L.member ppe.tag overTags) oldOverPath
+                             moves = L.filterMap (getOffsetAndMember .mouseMove) <|
+                                         L.filter (\ppe -> L.member ppe.tag oldOverTags) overPath
+                         in ( { mouseState | overPath <- overPath
+                                           , overTags <- overTags }
+                            , applyActions <| enters ++ leaves ++ moves
+                            )
 
 -- helper for processMouseEvent
 getOffsetAndMember : (ActionSet a -> Maybe (EventToAction a)) -> PickPathElem t a -> Maybe (Point, EventToAction a)
