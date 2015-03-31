@@ -196,10 +196,10 @@ vspace h = spacer 0 h
 hspace : Float -> Diagram t a
 hspace w = spacer w 0
 
-{-| Vertical line -}
+{-| Vertical line of given height and line style -}
 vline : Float -> C.LineStyle -> Diagram t a
 vline h ls = path [(0, h/2), (0, -h/2)] ls
 
-{-| Horizontal line -}
+{-| Horizontal line of given width and line style -}
 hline : Float -> C.LineStyle -> Diagram t a
 hline w ls = path [(-w/2, 0), (w/2, 0)] ls
