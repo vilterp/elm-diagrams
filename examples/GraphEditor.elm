@@ -84,24 +84,6 @@ defaultLineStyle = C.defaultLine
 
 edgeStyle = { defaultLineStyle | width <- 3 }
 
--- Align stuff
-
-type AlignDir = AlignLeft | AlignRight
-type AlignFlow t a = Align AlignDir (Diagram t a)
-                 --| Divider (C.LineStyle)
-
-alignFlow : List (AlignFlow t a) -> Diagram t a
-alignFlow aligns = let widths = L.map (\(Align _ dia) -> width dia) aligns
-                       maxWidth = L.maximum widths
-                       addPadding (Align dir dia) =
-                          let widthDiff = maxWidth - (width dia) -- TODO: already calculated (perf)
-                              wSpacer = hspace widthDiff
-                          in case dir of
-                               AlignLeft -> dia `beside` wSpacer
-                               AlignRight -> wSpacer `beside` dia
-                       padded = L.map (alignLeft << addPadding) aligns
-                   in vcat padded -- TODO ...
-
 -- Views
 
 defLine = C.defaultLine
