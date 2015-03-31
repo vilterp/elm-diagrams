@@ -21,7 +21,7 @@ makeText w = rect w 10 orangeFill
 inPorts = L.map (flexRight << makeText) [50, 60, 10, 100]
 outPorts = L.map (flexLeft << makeText) [120, 5, 80, 75]
 
-allRows = [topRow] ++ inPorts ++ outPorts
+allRows = [topRow] ++ inPorts ++ [centered <| rect 30 20 greenFill] ++ outPorts
 
 dia = layout allRows
 

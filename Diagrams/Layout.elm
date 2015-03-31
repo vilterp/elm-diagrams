@@ -9,7 +9,7 @@ TODO: generalize to vertical
 @docs layout
 
 # Primitives
-@docs spring, block, expando
+@docs spring, block, expando, strut
 
 # Helpers
 @docs centered, flexLeft, flexRight, flexCenter, flexAll, hRule
@@ -75,7 +75,11 @@ block dia = Block dia (width dia)
 expando : Width -> (Width -> Diagram t a) -> FlexDiagram t a
 expando w f = Expando { minWidth = w, render = f }
 
+strut : Width -> FlexDiagram t a
+strut w = Block (hspace w) w
+
 -- helpers
+
 centered : Diagram t a -> LayoutRow t a
 centered dia = [spring, block dia, spring]
 
