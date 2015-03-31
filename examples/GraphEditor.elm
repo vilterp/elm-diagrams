@@ -13,6 +13,7 @@ import Diagrams.FillStroke (..)
 import Diagrams.FullWindow as DFW
 import Diagrams.Envelope (..)
 import Diagrams.Bezier (..)
+import Diagrams.Layout (..)
 
 import Graphics.Collage as C
 import Color
@@ -108,12 +109,13 @@ xGlyph = let smallLine = vline 11 { defLine | color <- Color.white, width <- 2 }
              rotLeft = rotate (-pi/4) smallLine
              rotRight = rotate (pi/4) smallLine
              bg = circle 7 <| justFill <| C.Solid Color.red
-         in zcat [rotLeft, rotRight, bg]
+         in tag CloseNode <| zcat [rotLeft, rotRight, bg]
 
 type Tag = NodeIdT NodeId
          | TitleT
          | InPortT SlotId
          | OutPortT SlotId
+         | CloseNode
 
 type Action = Action
 
@@ -122,15 +124,21 @@ viewPosNode pn = move pn.pos <| tag (NodeIdT pn.id) <| pn.diagram
 
 viewNode : Node -> Diagram Tag Action
 viewNode node =
-    let title = Align AlignLeft <| tag TitleT <| text node.title titleStyle
+    let -- top row
+        title = tag TitleT <| text node.title titleStyle
+        titleRow = flexCenter title xGlyph
+        -- ports
         portCirc = circle 7 (justFill <| C.Solid Color.yellow)
         label lbl = text lbl T.defaultStyle
-        inSlot lbl = Align AlignLeft <| hcat [tag (InPortT lbl) portCirc, hspace 5, label lbl]
-        outSlot lbl = Align AlignRight <| hcat [label lbl, hspace 5, tag (OutPortT lbl) portCirc]
-        outSlots = L.map outSlot node.outPorts
+        -- in ports
+        inSlot lbl = flexRight <| hcat [tag (InPortT lbl) portCirc, hspace 5, label lbl]
         inSlots = L.map inSlot node.inPorts
-        padded = padSpecific 5 5 7 7 <| alignFlow <| [title] ++ inSlots ++ outSlots
-    in background (fillAndStroke (C.Solid Color.orange) (defaultStroke)) <| padded
+        -- out ports
+        outSlot lbl = flexLeft <| hcat [label lbl, hspace 5, tag (OutPortT lbl) portCirc]
+        outSlots = L.map outSlot node.outPorts
+        -- pad
+        padded = padSpecific 5 5 7 7 <| layout <| [titleRow] ++ inSlots ++ outSlots
+    in background (fillAndStroke (C.Solid Color.orange) defaultStroke) padded
 
 viewEdge : Diagram Tag Action -> Edge -> Diagram Tag Action
 viewEdge nodesDia edg =
