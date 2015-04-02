@@ -52,3 +52,13 @@ bbox2offsetDims bbox = { offset = ((bbox.right - bbox.left)/2, (bbox.up - bbox.d
                                 , height = bbox.up + bbox.down
                                 }
                        }
+
+-- vec vs point
+pointAdd : Point -> Point -> Point
+pointAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+
+pointNegate : Point -> Point
+pointNegate (x, y) = (-x, -y)
+
+pointSubtract : Point -> Point -> Point
+pointSubtract a b = a `pointAdd` (pointNegate b)

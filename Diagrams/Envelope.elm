@@ -29,7 +29,9 @@ envelope dir dia =
           in base + borderWidth
     in case dia of
         Tag _ _ dia' -> envelope dir dia'
-        Group dias -> L.maximum <| L.map (envelope dir) dias
+        Group dias -> case dias of -- TODO: cache
+                        [] -> 0
+                        _ -> L.maximum <| L.map (envelope dir) dias
         TransformD (Scale s) diag -> s * (envelope dir diag)
         TransformD (Rotate r) rotDia ->
             case rotDia of

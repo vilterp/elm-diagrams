@@ -19,7 +19,7 @@ fullWindowCollageLocFunc dims = { offset = (0.0,0.0), dims = dims }
 fullWindowCollageLoc : Signal CollageLocation
 fullWindowCollageLoc = S.map fullWindowCollageLocFunc floatWindowDims
 
-fullWindowUpdates : Signal (CollageLocation, MouseEvent)
+fullWindowUpdates : Signal (CollageLocation, PrimMouseEvent)
 fullWindowUpdates = makeUpdateStream fullWindowCollageLocFunc
 
 {-| The easiest way to get a diagram on the screen:

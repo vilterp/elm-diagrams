@@ -2,7 +2,7 @@ module Diagrams.Query where
 
 {-| Retreive information about laid-out diagrams.
 
-@docs PickPath, pick, TagPath, getCoords
+@docs pick, TagPath, getCoords
 -}
 
 import List as L
@@ -14,15 +14,6 @@ import Diagrams.Core (..)
 import Diagrams.Geom (..)
 import Diagrams.Actions (..)
 import Diagrams.FillStroke (..)
-
-{-| (Tag, Coordinates) pairs from bottom of tree to top; result of
-calling `pick` (see below). -}
-type alias PickPath t a = List (PickPathElem t a)
-
-type alias PickPathElem t a = { tag : t
-                              , actionSet : ActionSet a
-                              , offset : Point
-                              }
 
 {-| Given a Diagram t and a point (e.g. of the mouse), return the list of Tag nodes between
 the diagram root and the leaf node the point is within (a primitive visual element), along
@@ -40,7 +31,6 @@ Transform node from that tag node to the root,  would be the point initially giv
        , (<tag nearest myDiagram root>, <myPoint in root coordinate space>)]
 
 -}
-
 pick : Diagram t a -> Point -> PickPath t a
 pick diag point =
     let recurse dia pt pickPath = 
