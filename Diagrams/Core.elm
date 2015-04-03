@@ -29,7 +29,7 @@ version is missing a lot of features and generality.
  [hd-tut]: http://projects.haskell.org/diagrams/doc/quickstart.html
 
 # Basic Types
-@docs Diagram, PathType
+@docs Diagram, PathType, PickPath, PickPathElem
 
 # Constructors
 @docs circle, rect, path, polygon, text, spacer, transform, group, tag, tagWithActions, ngon, eqTriangle
@@ -74,7 +74,7 @@ type Diagram t a
     -- group
     | Group (List (Diagram t a))
     -- tag
-    | Tag t (ActionSet a) (Diagram t a)
+    | Tag t (ActionSet t a) (Diagram t a)
 
 -- constructors
 
@@ -121,7 +121,7 @@ tag t dia = Tag t emptyActionSet dia
 
 {-| Return a Tag node with the given Diagram as its sole child, holding both
 a tag and an action set. -}
-tagWithActions : t -> ActionSet a -> Diagram t a -> Diagram t a
+tagWithActions : t -> ActionSet t a -> Diagram t a -> Diagram t a
 tagWithActions = Tag
 
 {-| equilateral triangle with given side length & fill/stroke style -}

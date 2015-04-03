@@ -3,7 +3,7 @@ module Diagrams.Wiring where
 {-| Functions and types for getting a (possibly interactive) diagram onto the screen.
 
 # Types
-@docs CollageLocation, MouseEvent, MouseEvtType, CollageLocFunc
+@docs CollageLocation, PrimMouseEvent, PrimMouseEvtType, CollageLocFunc
 
 # Functions
 @docs makeUpdateStream, mouseEvents, offsetMousePos
@@ -23,11 +23,11 @@ import Diagrams.Geom (..)
 increasing right and down. -}
 type alias CollageLocation = OffsetDimsBox
 
-type alias MouseEvent = (MouseEvtType, Point)
+type alias PrimMouseEvent = (PrimMouseEvtType, Point)
 
-type MouseEvtType = MouseUp
-                  | MouseDown
-                  | MouseMove
+type PrimMouseEvtType = MouseUpEvt
+                      | MouseDownEvt
+                      | MouseMoveEvt
 
 {-| Given window size, where on screen and how big is your collage? -}
 type alias CollageLocFunc = Dims -> CollageLocation
@@ -37,16 +37,16 @@ type alias CollageLocFunc = Dims -> CollageLocation
 {-| Given collage location function, return stream of (collage location, mouse event)
 pairs, where mouse coordinates are relative to the center of the collage at its present
 location, and increasing up and to the right. -}
-makeUpdateStream : CollageLocFunc -> Signal (CollageLocation, MouseEvent)
+makeUpdateStream : CollageLocFunc -> Signal (CollageLocation, PrimMouseEvent)
 makeUpdateStream clf =
     let collageLocs = S.map clf floatWindowDims
         mouseEvts = mouseEvents collageLocs
     in S.map2 (,) collageLocs mouseEvts
 
-mouseEvents : Signal CollageLocation -> Signal MouseEvent
+mouseEvents : Signal CollageLocation -> Signal PrimMouseEvent
 mouseEvents loc =
-    let upDown = S.map (\down -> if down then MouseDown else MouseUp) Mouse.isDown
-        moves = S.map (always MouseMove) Mouse.position
+    let upDown = S.map (\down -> if down then MouseDownEvt else MouseUpEvt) Mouse.isDown
+        moves = S.map (always MouseMoveEvt) Mouse.position
         events = S.merge upDown moves
         adjustedMousePos = S.map2 offsetMousePos loc floatMousePos
     in S.map2 (,) events adjustedMousePos

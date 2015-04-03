@@ -19,12 +19,9 @@ TODO: generalize to vertical
 import Graphics.Collage as C
 import List as L
 
-import Debug
-
 import Diagrams.Core (..)
 import Diagrams.Envelope (..)
 import Diagrams.Align (..)
-import Diagrams.Debug (..)
 
 type alias Width = Float
 
@@ -57,7 +54,6 @@ renderRow decidedWidth row =
                      Block _ _ -> 0
                      _ -> 1
         numExpandos = L.sum <| L.map count row
-        tup = Debug.log "tup" (numExpandos, row)
         leftOver = decidedWidth - (L.sum hardMins)
         eachExpando = if numExpandos > 0 then leftOver / (toFloat numExpandos) else 0
         renderFD fd = case fd of

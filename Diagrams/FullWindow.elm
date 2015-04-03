@@ -2,7 +2,7 @@ module Diagrams.FullWindow where
 
 {-| Utilities for when you just want to get a diagram on the whole screen.
 
-@docs fullWindowCollageLoc, fullWindowUpdates, fullWindowMain, fullWindowView
+@docs fullWindowCollageLocFunc, fullWindowUpdates, fullWindowMain, fullWindowView
 -}
 
 import Window
@@ -13,11 +13,14 @@ import Graphics.Collage as C
 import Diagrams.Wiring (..)
 import Diagrams.Core (..)
 
-fullWindowCollageLoc : CollageLocFunc
-fullWindowCollageLoc dims = { offset = (0.0,0.0), dims = dims }
+fullWindowCollageLocFunc : CollageLocFunc
+fullWindowCollageLocFunc dims = { offset = (0.0,0.0), dims = dims }
 
-fullWindowUpdates : Signal (CollageLocation, MouseEvent)
-fullWindowUpdates = makeUpdateStream fullWindowCollageLoc
+fullWindowCollageLoc : Signal CollageLocation
+fullWindowCollageLoc = S.map fullWindowCollageLocFunc floatWindowDims
+
+fullWindowUpdates : Signal (CollageLocation, PrimMouseEvent)
+fullWindowUpdates = makeUpdateStream fullWindowCollageLocFunc
 
 {-| The easiest way to get a diagram on the screen:
 

@@ -7,6 +7,7 @@ Adapted from [this gist](https://gist.github.com/irrwitz/968b9762819974c92c9f).
 -}
 
 import Graphics.Collage as C
+import List as L
 
 import Diagrams.Core (..)
 import Diagrams.Geom (..)
@@ -15,7 +16,7 @@ import Diagrams.Geom (..)
 
 {-| Given four points a, cp1, cp2, b, return path diagram which is a bezier
 curve from a to b, using cp1 and cp2 as control points. -}
-bezier : Point -> Point -> Point -> Point -> C.LineStyle -> Diagram a
+bezier : Point -> Point -> Point -> Point -> C.LineStyle -> Diagram t a
 bezier a cp1 cp2 b ls = path (bezierCurve a cp1 cp2 b) ls
 
 bezierCurve : Point -> Point -> Point -> Point -> List Point
