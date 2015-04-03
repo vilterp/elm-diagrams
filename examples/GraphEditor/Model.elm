@@ -8,15 +8,29 @@ import List as L
 -- data structures
 
 type alias NodeId = String -- TODO: nested nodes. this should be a path
-type alias SlotId = String
-type alias PortId = (NodeId, SlotId)
+
+type OutSlotId = ApResultSlot String
+               | IfResultSlot
+               | FuncValueSlot
+
+type InSlotId = ApParamSlot String
+              | IfCondSlot
+              | IfTrueSlot
+              | IfFalseSlot
+
+type alias OutPortId = (NodeId, OutSlotId)
+type alias InPortId = (NodeId, InSlotId)
 
 -- TODO: abstract out diagram caching (...)
 type alias PosNode = { pos : Point, id : NodeId, node : Node }
 -- TODO: more node types
-type alias Node = { title : String, inPorts : List SlotId, outPorts : List SlotId }
+type Node = ApNode ApNodeAttrs
+          | IfNode
 
-type alias Edge = { from : PortId, to : PortId }
+-- TODO: this attrs thing is awkward
+type alias ApNodeAttrs = { title : String, params : List String, results : List String }
+
+type alias Edge = { from : OutPortId, to : InPortId }
 
 -- graph
 
@@ -25,7 +39,7 @@ type alias Graph = { nodes : D.Dict NodeId PosNode, edges : List Edge }
 -- app state
 
 type DraggingState = DraggingNode { nodeId : NodeId, offset : Point }
-                   | DraggingEdge { fromPort : PortId, endPos : Point }
+                   | DraggingEdge { fromPort : OutPortId, endPos : Point }
 
 type alias State = { graph : Graph, dragState : Maybe DraggingState }
 
@@ -33,13 +47,13 @@ type alias State = { graph : Graph, dragState : Maybe DraggingState }
 
 type Tag = NodeIdT NodeId
          | TitleT
-         | InPortT SlotId
-         | OutPortT SlotId
+         | InPortT InSlotId
+         | OutPortT OutSlotId
          | XOut
          | Canvas
 
 type Action = DragNodeStart { nodeId : NodeId, offset : Point }
-            | DragEdgeStart { fromPort : PortId, endPos : Point }
+            | DragEdgeStart { fromPort : OutPortId, endPos : Point }
             | DragMove Point
             | DragEnd
             | RemoveNode NodeId
