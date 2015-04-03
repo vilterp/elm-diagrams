@@ -88,15 +88,14 @@ initInteractState render model =
     }
 
 -- BUG: no initial pick path
--- TODO: analog to preventDefault / stop bubbling
 
 -- TODO: fix these docs vv
 {-| Given diagram with mouse state (`MouseDiagram`), mouse event, and dimensions of collage, return
 new `MouseDiagram` with list of actions triggered by this mouse event. -}
 processMouseEvent : Diagram t a -> MouseState t a -> PrimMouseEvent -> (MouseState t a, List a)
 processMouseEvent diagram mouseState (evt, mousePos) =
-    let applyActions overPath = L.map (\(pt, e2a) -> e2a <| MouseEvent { pickPath = overPath, offset = pt })
-        overPath = pick diagram mousePos -- need to pick every time because actions may have changed
+    let applyActions overPath = mapWithEarlyStop (\(pt, e2a) -> e2a <| MouseEvent { pickPath = overPath, offset = pt })
+        overPath = Debug.log "op" <| pick diagram mousePos -- need to pick every time because actions may have changed
     in case evt of
          MouseDownEvt -> let actions = L.filterMap (getOffsetAndMember .mouseDown) overPath
                          in ( { mouseState | isDown <- True }
@@ -106,7 +105,7 @@ processMouseEvent diagram mouseState (evt, mousePos) =
                            mouseUps = L.filterMap (getOffsetAndMember .mouseUp) overPath
                            clicks = L.filterMap (getOffsetAndMember .click) mouseState.overPath
                        in ( { mouseState | isDown <- False }
-                          , applyActions overPath <| mouseUps ++ clicks
+                          , applyActions overPath <| clicks ++ mouseUps
                           )
          MouseMoveEvt -> let oldOverPath = mouseState.overPath
                              -- sets of tags of elements mouse has left or entered
@@ -124,8 +123,18 @@ processMouseEvent diagram mouseState (evt, mousePos) =
                             , applyActions overPath <| enters ++ leaves ++ moves
                             )
 
--- helper for processMouseEvent
+-- helpers for processMouseEvent
+
 getOffsetAndMember : (ActionSet t a -> Maybe (EventToAction t a)) -> PickPathElem t a -> Maybe (Point, EventToAction t a)
 getOffsetAndMember getMember ppe = case getMember ppe.actionSet of
                                      Just e2a -> Just (ppe.offset, e2a)
                                      Nothing -> Nothing
+
+{-| Like map, but stops if the second element of the function result is True. -}
+mapWithEarlyStop : (a -> (b, Bool)) -> List a -> List b
+mapWithEarlyStop f l =
+    case l of
+      [] -> []
+      (x::xs) -> case f x of
+                   (y, True) -> [y]
+                   (y, False) -> y :: (mapWithEarlyStop f xs)

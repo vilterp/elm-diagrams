@@ -26,7 +26,9 @@ type MouseEvent t a = MouseEvent { offset : Point
                                  , pickPath : PickPath t a
                                  }
 
-type alias EventToAction t a = MouseEvent t a -> a
+{-| Given an event, return (a) an action resulting from that event, and (b) whether to stop this
+mouse event from "bubbling up" to handlers higher up the tree. -}
+type alias EventToAction t a = MouseEvent t a -> (a, Bool)
 type alias ActionSet t a =
     { click : Maybe (EventToAction t a)
     , mouseEnter : Maybe (EventToAction t a)
@@ -44,6 +46,12 @@ emptyActionSet =
     , mouseDown = Nothing
     , mouseUp = Nothing
     }
+
+keepBubbling : (MouseEvent t a -> a) -> EventToAction t a
+keepBubbling f = \evt -> (f evt, False)
+
+stopBubbling : (MouseEvent t a -> a) -> EventToAction t a
+stopBubbling f = \evt -> (f evt, True)
 
 -- why is this not in the stdlib?
 -- empty list => incomplete pattern match

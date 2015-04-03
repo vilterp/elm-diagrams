@@ -44,38 +44,34 @@ viewPosNode dState pn = move pn.pos <| tagWithActions (NodeIdT pn.id) (posNodeAc
 
 -- TODO: this is fucking terrible
 posNodeActions nodeId dragState =
-    let isOutPort ppe = case ppe.tag of
-                          OutPortT _ -> Just True
-                          _ -> Nothing
-        maybeStartDrag evtAttrs =
-          let overOutPort = not <| L.isEmpty <| L.filterMap isOutPort evtAttrs.pickPath
-          in if overOutPort then NoOp
-             else DragNodeStart { nodeId = nodeId, offset = evtAttrs.offset }
-    in case dragState of
-         Nothing -> { emptyActionSet | mouseDown <- Just <| \(MouseEvent evt) -> maybeStartDrag evt }
-         _ -> emptyActionSet
+    case dragState of
+      Nothing -> { emptyActionSet | mouseDown <- Just <| stopBubbling <|
+                                      \(MouseEvent evt) -> DragNodeStart { nodeId = nodeId, offset = evt.offset } }
+      _ -> emptyActionSet
 
 nodeXOutActions nodeId dragState =
     case dragState of
-      Nothing -> { emptyActionSet | click <- Just <| always <| RemoveNode nodeId }
+      Nothing -> { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveNode nodeId }
       _ -> emptyActionSet
 
-edgeXOutActions edge = { emptyActionSet | click <- Just <| always <| RemoveEdge edge }
+edgeXOutActions edge = { emptyActionSet | click <- Just <| stopBubbling <| always <| RemoveEdge edge }
 
 canvasActions dragState =
-    let dragMove = { emptyActionSet | mouseMove <- Just <| \(MouseEvent evt) -> DragMove evt.offset
-                                    , mouseUp <- Just <| always DragEnd }
+    let dragMove = { emptyActionSet | mouseMove <- Just <| stopBubbling <| \(MouseEvent evt) -> DragMove evt.offset
+                                    , mouseUp <- Just <| stopBubbling <| always DragEnd }
     in case dragState of
          Nothing -> emptyActionSet
          _ -> dragMove
 
 outPortActions : PortId -> ActionSet Tag Action
-outPortActions portId = { emptyActionSet | mouseDown <- Just <| \evt -> DragEdgeStart { fromPort = portId, endPos = collageMousePos evt } }
+outPortActions portId = { emptyActionSet | mouseDown <- Just <| stopBubbling <|
+                                              \evt -> DragEdgeStart { fromPort = portId, endPos = collageMousePos evt } }
 
 inPortActions : PortId -> Maybe DraggingState -> ActionSet Tag Action
 inPortActions portId dragState =
     case dragState of
-      Just (DraggingEdge attrs) -> { emptyActionSet | mouseUp <- Just <| always <| AddEdge { from = attrs.fromPort, to = portId } }
+      Just (DraggingEdge attrs) -> { emptyActionSet | mouseUp <- Just <| stopBubbling <|
+                                                        always <| AddEdge { from = attrs.fromPort, to = portId } }
       _ -> emptyActionSet
 
 viewNode : Node -> NodeId -> Maybe DraggingState -> Diagram Tag Action
