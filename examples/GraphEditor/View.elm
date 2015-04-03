@@ -55,10 +55,12 @@ posNodeActions nodeId dragState =
          Nothing -> { emptyActionSet | mouseDown <- Just <| \(MouseEvent evt) -> maybeStartDrag evt }
          _ -> emptyActionSet
 
-xOutActions nodeId dragState =
+nodeXOutActions nodeId dragState =
     case dragState of
       Nothing -> { emptyActionSet | click <- Just <| always <| RemoveNode nodeId }
       _ -> emptyActionSet
+
+edgeXOutActions edge = { emptyActionSet | click <- Just <| always <| RemoveEdge edge }
 
 canvasActions dragState =
     let dragMove = { emptyActionSet | mouseMove <- Just <| \(MouseEvent evt) -> DragMove evt.offset
@@ -68,7 +70,7 @@ canvasActions dragState =
          _ -> dragMove
 
 outPortActions : PortId -> ActionSet Tag Action
-outPortActions portId = { emptyActionSet | mouseDown <- Just <| \(MouseEvent evt) -> DragEdgeStart { fromPort = portId, endPos = evt.offset } }
+outPortActions portId = { emptyActionSet | mouseDown <- Just <| \evt -> DragEdgeStart { fromPort = portId, endPos = collageMousePos evt } }
 
 inPortActions : PortId -> Maybe DraggingState -> ActionSet Tag Action
 inPortActions portId dragState =
@@ -80,7 +82,7 @@ viewNode : Node -> NodeId -> Maybe DraggingState -> Diagram Tag Action
 viewNode node nodeId dState =
    let -- top row
        title = text node.title titleStyle
-       xOut = tagWithActions XOut (xOutActions nodeId dState) <| xGlyph
+       xOut = tagWithActions XOut (nodeXOutActions nodeId dState) <| xGlyph
        titleRow = flexCenter title xOut
        -- ports
        portCirc = circle 7 (justFill <| C.Solid Color.yellow)
@@ -97,11 +99,8 @@ viewNode node nodeId dState =
 
 viewEdge : Diagram Tag Action -> Edge -> Diagram Tag Action
 viewEdge nodesDia edg =
-   let (fromNode, fromPort) = edg.from
-       (toNode, toPort) = edg.to
-       fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
-       toCoords = case getCoords nodesDia [NodeIdT toNode, InPortT toPort] of { Just pt -> pt }
-   in viewGenericEdge fromCoords toCoords
+   let {from, to} = getEdgeCoords nodesDia edg
+   in viewGenericEdge from to
 
 viewGenericEdge : Point -> Point -> Diagram Tag Action
 viewGenericEdge fromCoords toCoords =
@@ -117,10 +116,27 @@ viewDraggingEdge (fromNode, fromPort) nodesDia mousePos =
    let fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
    in viewGenericEdge fromCoords mousePos
 
+getEdgeCoords : Diagram Tag Action -> Edge -> { from : Point, to : Point }
+getEdgeCoords nodesDia edg =
+    let (fromNode, fromPort) = edg.from
+        (toNode, toPort) = edg.to
+        -- TODO: not sure how to not have these incomplete pattern matches
+        fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
+        toCoords = case getCoords nodesDia [NodeIdT toNode, InPortT toPort] of { Just pt -> pt }
+    in { from = fromCoords, to = toCoords }
+
+viewEdgeXOut : Diagram Tag Action -> Edge -> Diagram Tag Action
+viewEdgeXOut nodesDia edge =
+  let edgeCoords = getEdgeCoords nodesDia edge
+  in tagWithActions XOut (edgeXOutActions edge) <| move edgeCoords.to <| xGlyph
+
 view : State -> Diagram Tag Action
-view state = let nodes = zcat <| L.map (viewPosNode state.dragState) <| D.values state.graph.nodes
-                 edges = zcat <| L.map (viewEdge nodes) state.graph.edges
-                 draggingEdge = case state.dragState of
-                                  Just (DraggingEdge attrs) -> [viewDraggingEdge attrs.fromPort nodes attrs.endPos]
-                                  _ -> []
-             in tagWithActions Canvas (canvasActions state.dragState) <| pad 10000 <| zcat <| draggingEdge ++ [edges, nodes]
+view state = 
+    let nodes = zcat <| L.map (viewPosNode state.dragState) <| D.values state.graph.nodes
+        edges = zcat <| L.map (viewEdge nodes) state.graph.edges
+        edgeXOuts = zcat <| L.map (viewEdgeXOut nodes) state.graph.edges
+        draggingEdge = case state.dragState of
+                         Just (DraggingEdge attrs) -> [viewDraggingEdge attrs.fromPort nodes attrs.endPos]
+                         _ -> []
+    in tagWithActions Canvas (canvasActions state.dragState) <| pad 10000 <| zcat <| draggingEdge ++ [edgeXOuts, edges, nodes]
+-- TODO: pad 10000 is jank

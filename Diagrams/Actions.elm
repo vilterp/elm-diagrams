@@ -2,8 +2,11 @@ module Diagrams.Actions where
 
 {-| A type for attaching mouse actions to diagrams.
 
-@docs ActionSet, EventToAction, emptyActionSet
+@docs ActionSet, EventToAction, emptyActionSet, collageMousePos
 -}
+
+import List as L
+import Debug
 
 import Diagrams.Geom (..)
 
@@ -41,3 +44,14 @@ emptyActionSet =
     , mouseDown = Nothing
     , mouseUp = Nothing
     }
+
+-- why is this not in the stdlib?
+-- empty list => incomplete pattern match
+last : List a -> a
+last l = case l of
+           [] -> Debug.crash "last expects a non-empty list"
+           [x] -> x
+           (x::xs) -> last xs
+
+collageMousePos : MouseEvent t a -> Point
+collageMousePos (MouseEvent evt) = (last evt.pickPath).offset
