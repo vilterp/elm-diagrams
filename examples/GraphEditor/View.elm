@@ -30,17 +30,9 @@ defaultLineStyle = C.defaultLine
 
 edgeStyle = { defaultLineStyle | width <- 3 }
 
--- Views
-
 defLine = C.defaultLine
-xGlyph = let smallLine = vline 11 { defLine | color <- Color.white, width <- 2 }
-             rotLeft = rotate (-pi/4) smallLine
-             rotRight = rotate (pi/4) smallLine
-             bg = circle 7 <| justFill <| C.Solid Color.red
-         in zcat [rotLeft, rotRight, bg]
 
-viewPosNode : Maybe DraggingState -> PosNode -> Diagram Tag Action
-viewPosNode dState pn = move pn.pos <| tagWithActions (NodeIdT pn.id) (posNodeActions pn.id dState) <| viewNode pn.node pn.id dState
+-- actions
 
 -- TODO: this is fucking terrible
 posNodeActions nodeId dragState =
@@ -73,6 +65,18 @@ inPortActions portId dragState =
       Just (DraggingEdge attrs) -> { emptyActionSet | mouseUp <- Just <| stopBubbling <|
                                                         always <| AddEdge { from = attrs.fromPort, to = portId } }
       _ -> emptyActionSet
+
+-- views
+
+xGlyph = let smallLine = vline 11 { defLine | color <- Color.white, width <- 2 }
+             rotLeft = rotate (-pi/4) smallLine
+             rotRight = rotate (pi/4) smallLine
+             bg = circle 7 <| justFill <| C.Solid Color.red
+         in zcat [rotLeft, rotRight, bg]
+
+-- TODO: can cache diagram in PosNode to improve performance
+viewPosNode : Maybe DraggingState -> PosNode -> Diagram Tag Action
+viewPosNode dState pn = move pn.pos <| tagWithActions (NodeIdT pn.id) (posNodeActions pn.id dState) <| viewNode pn.node pn.id dState
 
 viewNode : Node -> NodeId -> Maybe DraggingState -> Diagram Tag Action
 viewNode node nodeId dState =
