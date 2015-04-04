@@ -29,4 +29,4 @@ update action state =
       NoOp -> state
 
 render : RenderFunc State Tag Action
-render = view
+render state = viewGraph state

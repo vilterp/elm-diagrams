@@ -188,6 +188,8 @@ viewIfNode nodeId state =
         outSlots = OutputGroup [IfResultSlot]
     in nodeDiagram nodeId state titleRow [inSlots, outSlots] Color.lightPurple
 
+--viewLambdaNode : ...
+
 -- edges
 
 viewEdge : Diagram Tag Action -> Edge -> Diagram Tag Action
@@ -223,8 +225,8 @@ viewEdgeXOut nodesDia edge =
   let edgeCoords = getEdgeCoords nodesDia edge
   in tagWithActions XOut (edgeXOutActions edge) <| move edgeCoords.to <| edgeXGlyph takenColor
 
-view : State -> Diagram Tag Action
-view state = 
+viewGraph : State -> Diagram Tag Action
+viewGraph state = 
     let nodes = zcat <| L.map (viewPosNode state) <| D.values state.graph.nodes
         edges = zcat <| L.map (viewEdge nodes) state.graph.edges
         edgeXOuts = zcat <| L.map (viewEdgeXOut nodes) state.graph.edges

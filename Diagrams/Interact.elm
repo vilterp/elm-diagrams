@@ -36,7 +36,6 @@ import Debug
 -- shit, I guess the pick path should really be a pick tree. #@$@
 
 -- TODO(perf): keep both unzipped for perforance?
--- TODO: store pick path when mouse went down
 type alias MouseState t a =
     { isDown : Bool
     , overPath : PickPath t a
