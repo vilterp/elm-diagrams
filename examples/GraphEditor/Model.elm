@@ -21,8 +21,14 @@ type InSlotId = ApParamSlot String
 type alias OutPortId = (NodeId, OutSlotId)
 type alias InPortId = (NodeId, InSlotId)
 
+type PortState = ValidPort
+               | InvalidPort
+               | TakenPort
+               | NormalPort
+
 -- TODO: abstract out diagram caching (...)
 type alias PosNode = { pos : Point, id : NodeId, node : Node }
+
 -- TODO: more node types
 type Node = ApNode ApNodeAttrs
           | IfNode
@@ -83,3 +89,24 @@ removeEdge graph edge = { graph | edges <- L.filter (\e -> e /= edge) graph.edge
 
 addNode : PosNode -> Graph -> Graph
 addNode node graph = { graph | nodes <- D.insert node.id node graph.nodes }
+
+-- queries
+
+inPortTaken : Graph -> InPortId -> Bool
+inPortTaken g inPort = L.any (\{from, to} -> to == inPort) g.edges
+
+-- TODO(perf): these are same for duration of drag. could save somewhere.
+-- TODO: make depend on types! whoooo!
+inPortState : State -> InPortId -> PortState
+inPortState state (nodeId, slotId) =
+    case state.dragState of
+      Nothing -> NormalPort
+      Just (DraggingNode _) -> NormalPort
+      Just (DraggingEdge attrs) -> let (fromNodeId, _) = attrs.fromPort
+                                   in if | fromNodeId == nodeId -> InvalidPort
+                                         | inPortTaken state.graph (nodeId, slotId) -> TakenPort
+                                         | otherwise -> ValidPort
+
+-- TODO: highlight as valid when you mouse over an in port of same type
+outPortState : State -> OutPortId -> PortState
+outPortState _ _ = NormalPort

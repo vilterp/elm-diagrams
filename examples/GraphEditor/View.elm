@@ -5,6 +5,7 @@ import Graphics.Collage as C
 import Color
 import List as L
 import Dict as D
+import Maybe as M
 
 import Debug
 
@@ -21,7 +22,7 @@ import Diagrams.Debug (..)
 
 import GraphEditor.Model (..)
 
--- Styles
+-- Styles (TODO: factor into own module?)
 
 defaultTextStyle = T.defaultStyle
 titleStyle = { defaultTextStyle | bold <- True }
@@ -35,6 +36,8 @@ defLine = C.defaultLine
 
 nodeTopDivider = defLine
 nodeMiddleDivider = { defLine | dashing <- [5, 5] }
+
+portColor = Color.yellow
 
 -- actions
 
@@ -67,17 +70,33 @@ inPortActions portId dragState =
                                                           always <| AddEdge { from = attrs.fromPort, to = portId } }
       _ -> emptyActionSet
 
+-- TODO: don't forget about ports that are taken
+portStateColorCode : PortState -> Color.Color
+portStateColorCode st = case st of
+                          ValidPort -> Color.lightGreen
+                          InvalidPort -> Color.grey
+                          NormalPort -> Color.yellow
+                          TakenPort -> takenColor
+
+takenColor = Color.lightGreen
+
 -- views
 
 -- common elements
-xGlyph = let smallLine = vline 11 { defLine | color <- Color.white, width <- 2 }
-             rotLeft = rotate (-pi/4) smallLine
-             rotRight = rotate (pi/4) smallLine
-             bg = circle 7 <| justFill <| C.Solid Color.red
-         in zcat [rotLeft, rotRight, bg]
+xGlyph : Color.Color -> Maybe Color.Color -> Diagram Tag Action
+xGlyph lineColor bgColor =
+  let smallLine = vline 11 { defLine | color <- lineColor, width <- 2 }
+      rotLeft = rotate (-pi/4) smallLine
+      rotRight = rotate (pi/4) smallLine
+      actualBgColor = M.withDefault (Color.red `withAlpha` 0) bgColor
+      bg = circle 7 <| justFill <| C.Solid actualBgColor
+  in zcat [rotLeft, rotRight, bg]
+
+nodeXGlyph = xGlyph Color.white Nothing
+edgeXGlyph bgC = xGlyph Color.black <| Just bgC
 
 -- TODO: color code based on state
-portCirc = circle 7 (justFill <| C.Solid Color.yellow)
+portCirc color = circle 7 (justFill <| C.Solid color)
 
 inSlotLabel : InSlotId -> String
 inSlotLabel sid =
@@ -87,12 +106,14 @@ inSlotLabel sid =
       IfTrueSlot -> "if true"
       IfFalseSlot -> "if false"
 
-inSlot : NodeId -> Maybe DraggingState -> InSlotId -> LayoutRow Tag Action
-inSlot nodeId dState slotId =
-    flexRight <| hcat [ tagWithActions (InPortT slotId) (inPortActions (nodeId, slotId) dState) <| portCirc
-                      , hspace 5
-                      , text (inSlotLabel slotId) slotLabelStyle
-                      ]
+inSlot : State -> InPortId -> LayoutRow Tag Action
+inSlot state (nodeId, slotId) =
+    let stateColor = portStateColorCode <| inPortState state (nodeId, slotId)
+    in flexRight <| hcat [ tagWithActions (InPortT slotId) (inPortActions (nodeId, slotId) state.dragState)
+                              <| portCirc stateColor
+                         , hspace 5
+                         , text (inSlotLabel slotId) slotLabelStyle
+                         ]
 
 outSlotLabel : OutSlotId -> String
 outSlotLabel sid =
@@ -101,17 +122,19 @@ outSlotLabel sid =
       IfResultSlot -> "result"
       FuncValueSlot -> "" -- not used
 
-outSlot : NodeId -> Maybe DraggingState -> OutSlotId -> LayoutRow Tag Action
-outSlot nodeId dState slotId =
-    flexLeft <| hcat [ text (outSlotLabel slotId) slotLabelStyle
-                     , hspace 5
-                     , tagWithActions (OutPortT slotId) (outPortActions (nodeId, slotId)) <| portCirc
-                     ]
+outSlot : State -> OutPortId -> LayoutRow Tag Action
+outSlot state (nodeId, slotId) =
+    let stateColor = portStateColorCode <| outPortState state (nodeId, slotId)
+    in flexLeft <| hcat [ text (outSlotLabel slotId) slotLabelStyle
+                        , hspace 5
+                        , tagWithActions (OutPortT slotId) (outPortActions (nodeId, slotId))
+                            <| portCirc stateColor
+                        ]
 
 nodeTitle : String -> NodeId -> Diagram Tag Action
 nodeTitle name nodeId =
     let title = text name titleStyle
-        xOut = tagWithActions XOut (nodeXOutActions nodeId) <| xGlyph
+        xOut = tagWithActions XOut (nodeXOutActions nodeId) <| nodeXGlyph
     in hcat <| [ xOut
                , hspace 5
                , title
@@ -121,41 +144,46 @@ nodeTitle name nodeId =
 type SlotGroup = InputGroup (List InSlotId)
                | OutputGroup (List OutSlotId)
 
-nodeDiagram : NodeId -> Maybe DraggingState -> LayoutRow Tag Action -> List SlotGroup -> Color.Color -> Diagram Tag Action
-nodeDiagram nodeId dState titleRow slotGroups color =
+nodeDiagram : NodeId -> State -> LayoutRow Tag Action -> List SlotGroup -> Color.Color -> Diagram Tag Action
+nodeDiagram nodeId state titleRow slotGroups color =
     let viewGroup : SlotGroup -> List (LayoutRow Tag Action)
         viewGroup group =
             case group of
-              InputGroup ids -> L.map (inSlot nodeId dState) ids
-              OutputGroup ids -> L.map (outSlot nodeId dState) ids
+              InputGroup ids -> L.map (\inSlotId -> inSlot state (nodeId, inSlotId)) ids
+              OutputGroup ids -> L.map (\outSlotId -> outSlot state (nodeId, outSlotId)) ids
     in background (fillAndStroke (C.Solid color) defaultStroke) <|
           layout <| [titleRow, hrule nodeTopDivider 3] ++ (intercalate [hrule nodeMiddleDivider 3] (L.map viewGroup slotGroups))
 
 -- TODO: can cache diagram in PosNode to improve performance
-viewPosNode : Maybe DraggingState -> PosNode -> Diagram Tag Action
-viewPosNode dState pn = move pn.pos <| tagWithActions (NodeIdT pn.id) (posNodeActions pn.id dState) <| viewNode pn.node pn.id dState
+viewPosNode : State -> PosNode -> Diagram Tag Action
+viewPosNode state pn =
+  viewNode pn.node pn.id state
+  |> tagWithActions (NodeIdT pn.id) (posNodeActions pn.id state.dragState)
+  |> move pn.pos
 
-viewNode : Node -> NodeId -> Maybe DraggingState -> Diagram Tag Action
-viewNode node nodeId dState =
+viewNode : Node -> NodeId -> State -> Diagram Tag Action
+viewNode node nodeId state =
     case node of
-      ApNode attrs -> viewApNode attrs nodeId dState
-      IfNode -> viewIfNode nodeId dState
+      ApNode attrs -> viewApNode attrs nodeId state
+      IfNode -> viewIfNode nodeId state
 
 -- TODO: padding is awkward
-viewApNode : ApNodeAttrs -> NodeId -> Maybe DraggingState -> Diagram Tag Action
-viewApNode node nodeId dState =
-    let funcOutPort = tagWithActions (OutPortT FuncValueSlot) (outPortActions (nodeId, FuncValueSlot)) <| portCirc
+viewApNode : ApNodeAttrs -> NodeId -> State -> Diagram Tag Action
+viewApNode node nodeId state =
+    let funcOutPortColor = portStateColorCode <| outPortState state (nodeId, FuncValueSlot)
+        funcOutPort = tagWithActions (OutPortT FuncValueSlot) (outPortActions (nodeId, FuncValueSlot))
+                          <| portCirc funcOutPortColor
         titleRow = flexCenter (nodeTitle node.title nodeId) funcOutPort
         params = InputGroup <| L.map ApParamSlot node.params
         results = OutputGroup <| L.map ApResultSlot node.results
-    in nodeDiagram nodeId dState titleRow [params, results] Color.lightBlue -- TODO: lighter
+    in nodeDiagram nodeId state titleRow [params, results] Color.lightBlue -- TODO: lighter
 
-viewIfNode : NodeId -> Maybe DraggingState -> Diagram Tag Action
-viewIfNode nodeId dState =
+viewIfNode : NodeId -> State -> Diagram Tag Action
+viewIfNode nodeId state =
     let titleRow = flexRight (nodeTitle "If" nodeId)
         inSlots = InputGroup [IfCondSlot, IfTrueSlot, IfFalseSlot]
         outSlots = OutputGroup [IfResultSlot]
-    in nodeDiagram nodeId dState titleRow [inSlots, outSlots] Color.lightPurple
+    in nodeDiagram nodeId state titleRow [inSlots, outSlots] Color.lightPurple
 
 -- edges
 
@@ -190,11 +218,11 @@ getEdgeCoords nodesDia edg =
 viewEdgeXOut : Diagram Tag Action -> Edge -> Diagram Tag Action
 viewEdgeXOut nodesDia edge =
   let edgeCoords = getEdgeCoords nodesDia edge
-  in tagWithActions XOut (edgeXOutActions edge) <| move edgeCoords.to <| xGlyph
+  in tagWithActions XOut (edgeXOutActions edge) <| move edgeCoords.to <| edgeXGlyph takenColor
 
 view : State -> Diagram Tag Action
 view state = 
-    let nodes = zcat <| L.map (viewPosNode state.dragState) <| D.values state.graph.nodes
+    let nodes = zcat <| L.map (viewPosNode state) <| D.values state.graph.nodes
         edges = zcat <| L.map (viewEdge nodes) state.graph.edges
         edgeXOuts = zcat <| L.map (viewEdgeXOut nodes) state.graph.edges
         draggingEdge = case state.dragState of
