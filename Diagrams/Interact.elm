@@ -20,6 +20,7 @@ import Window
 import Mouse
 
 import List as L
+import Maybe as M
 import Graphics.Element as E
 import Graphics.Collage as C
 
@@ -34,11 +35,16 @@ import Debug
 -- BUG: if A is on top of and within B, entering A should not count as leaving B.
 -- shit, I guess the pick path should really be a pick tree. #@$@
 
--- TODO: keep both unzipped for perforance?
+-- TODO(perf): keep both unzipped for perforance?
 -- TODO: store pick path when mouse went down
-type alias MouseState t a = { isDown : Bool, overPath : PickPath t a, overTags : List t }
+type alias MouseState t a =
+    { isDown : Bool
+    , overPath : PickPath t a
+    , overTags : List t
+    , pickPathOnMouseDown : Maybe (PickPath t a)
+    }
 
-initMouseState = { isDown = False, overPath = [], overTags = [] }
+initMouseState = { isDown = False, overPath = [], overTags = [], pickPathOnMouseDown = Nothing }
 
 type alias InteractionState m t a =
     { mouseState : MouseState t a
@@ -99,13 +105,18 @@ processMouseEvent diagram mouseState (evt, mousePos) =
         overPath = Debug.log "op" <| pick diagram mousePos -- need to pick every time because actions may have changed
     in case evt of
          MouseDownEvt -> let actions = L.filterMap (getOffsetAndMember .mouseDown) overPath
-                         in ( { mouseState | isDown <- True }
+                         in ( { mouseState | isDown <- True
+                                           , pickPathOnMouseDown <- Just overPath }
                             , applyActions overPath actions
                             )
          MouseUpEvt -> let overTags = L.map .tag overPath
                            mouseUps = L.filterMap (getOffsetAndMember .mouseUp) overPath
-                           clicks = L.filterMap (getOffsetAndMember .click) mouseState.overPath
-                       in ( { mouseState | isDown <- False }
+                           -- TODO: filter for ones that have same pick path on mouse down as now (?)
+                           clicks = if overPath == M.withDefault [] mouseState.pickPathOnMouseDown
+                                    then L.filterMap (getOffsetAndMember .click) overPath
+                                    else []
+                       in ( { mouseState | isDown <- False
+                                         , pickPathOnMouseDown <- Nothing }
                           , applyActions overPath <| clicks ++ mouseUps
                           )
          MouseMoveEvt -> let oldOverPath = mouseState.overPath
