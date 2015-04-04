@@ -63,18 +63,21 @@ outPortActions : OutPortId -> ActionSet Tag Action
 outPortActions portId = { emptyActionSet | mouseDown <- Just <| stopBubbling <|
                                               \evt -> DragEdgeStart { fromPort = portId, endPos = collageMousePos evt } }
 
-inPortActions : InPortId -> Maybe DraggingState -> ActionSet Tag Action
-inPortActions portId dragState =
-    case dragState of
-      Just (DraggingEdge attrs) -> { emptyActionSet | mouseUp <- Just <| stopBubbling <|
-                                                          always <| AddEdge { from = attrs.fromPort, to = portId } }
-      _ -> emptyActionSet
+inPortActions : InPortId -> State -> ActionSet Tag Action
+inPortActions portId state =
+    let portState = inPortState state portId
+    in case state.dragState of
+         Just (DraggingEdge attrs) -> if portState == ValidPort
+                                      then { emptyActionSet | mouseUp <- Just <| stopBubbling
+                                                <| always <| AddEdge { from = attrs.fromPort, to = portId } }
+                                      else emptyActionSet
+         _ -> emptyActionSet
 
 -- TODO: don't forget about ports that are taken
 portStateColorCode : PortState -> Color.Color
 portStateColorCode st = case st of
                           ValidPort -> Color.lightGreen
-                          InvalidPort -> Color.grey
+                          InvalidPort -> Color.yellow
                           NormalPort -> Color.yellow
                           TakenPort -> takenColor
 
@@ -109,7 +112,7 @@ inSlotLabel sid =
 inSlot : State -> InPortId -> LayoutRow Tag Action
 inSlot state (nodeId, slotId) =
     let stateColor = portStateColorCode <| inPortState state (nodeId, slotId)
-    in flexRight <| hcat [ tagWithActions (InPortT slotId) (inPortActions (nodeId, slotId) state.dragState)
+    in flexRight <| hcat [ tagWithActions (InPortT slotId) (inPortActions (nodeId, slotId) state)
                               <| portCirc stateColor
                          , hspace 5
                          , text (inSlotLabel slotId) slotLabelStyle
