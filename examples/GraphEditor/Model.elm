@@ -99,8 +99,8 @@ moveNode graph nodePath newPos =
 addEdge : Edge -> Graph -> Result String Graph
 addEdge newEdge graph = Ok { graph | edges <- newEdge :: graph.edges }
 
-removeEdge : Graph -> Edge -> Graph
-removeEdge graph edge = { graph | edges <- L.filter (\e -> e /= edge) graph.edges }
+removeEdge : Edge -> Graph -> Graph
+removeEdge edge graph = { graph | edges <- L.filter (\e -> e /= edge) graph.edges }
 
 addNode : NodePath -> PosNode -> Graph -> Result String Graph
 addNode pathAbove posNode graph =

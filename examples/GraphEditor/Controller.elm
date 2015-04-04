@@ -6,7 +6,7 @@ import Diagrams.Interact (..)
 import Diagrams.Geom (..)
 
 import GraphEditor.Model (..)
-import GraphEditor.View (..)
+--import GraphEditor.View (..)
 
 -- the view has to import these types, but we have to import the view...
 
@@ -17,16 +17,29 @@ update action state =
       DragEdgeStart attrs -> { state | dragState <- Just <| DraggingEdge attrs }
       DragMove mousePos ->
           case state.dragState of
-            Just (DraggingNode attrs) -> { state | graph <- moveNode state.graph attrs.nodeId (mousePos `pointSubtract` attrs.offset) }
-            Just (DraggingEdge attrs) -> { state | dragState <- Just <| DraggingEdge { attrs | endPos <- mousePos } }
+            Just (DraggingNode attrs) ->
+                let moveRes = moveNode state.graph attrs.nodePath
+                                       (mousePos `pointSubtract` attrs.offset)
+                in case moveRes of
+                     Ok newGraph -> { state | graph <- newGraph }
+                     Err msg -> Debug.crash msg
+            Just (DraggingEdge attrs) ->
+                { state | dragState <-
+                            Just <| DraggingEdge { attrs | endPos <- mousePos } }
             Nothing -> state
             _ -> state
       DragEnd -> { state | dragState <- Nothing }
-      RemoveNode nodeId -> { state | graph <- removeNode state.graph nodeId }
-      RemoveEdge edge -> { state | graph <- removeEdge state.graph edge }
-      AddEdge edge -> { state | graph <- addEdge state.graph edge
-                              , dragState <- Nothing }
+      RemoveNode nodePath ->
+          case removeNode state.graph nodePath of
+            Ok newGraph -> { state | graph <- newGraph }
+            Err msg -> Debug.crash msg
+      RemoveEdge edge -> { state | graph <- removeEdge edge state.graph }
+      AddEdge edge ->
+        case addEdge edge state.graph of
+          Ok newGraph -> { state | graph <- newGraph
+                                 , dragState <- Nothing }
+          Err msg -> Debug.crash msg
       NoOp -> state
 
-render : RenderFunc State Tag Action
-render state = viewGraph state
+--render : RenderFunc State Tag Action
+--render state = viewGraph state
