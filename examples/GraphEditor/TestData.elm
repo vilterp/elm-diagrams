@@ -34,8 +34,8 @@ lambdaPosNode = { node = lambdaNode, pos = (300, -200), id = "lambda" }
 ifNode = IfNode
 ifPosNode = { id = "if1", node = ifNode, pos = (-200, 300) }
 
-nodes = [fooPosNode, bazPosNode, barPosNode, subBazPosNode, subBarPosNode, ifPosNode, lambdaPosNode]
-edges = [fooBarEdge, subBarSubBazEdge]
+nodes = [fooPosNode, bazPosNode, barPosNode, ifPosNode, lambdaPosNode]
+edges = [fooBarEdge]
 
 initGraph : Graph
 initGraph = let withNodes : Result String Graph

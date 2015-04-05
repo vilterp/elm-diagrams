@@ -6,9 +6,9 @@ import Diagrams.Interact (..)
 import Diagrams.Geom (..)
 
 import GraphEditor.Model (..)
---import GraphEditor.View (..)
+import GraphEditor.View (..)
 
--- the view has to import these types, but we have to import the view...
+-- BUG: if func out port being used, shouldn't be able to use any other ports
 
 update : UpdateFunc State Action
 update action state =
@@ -41,5 +41,5 @@ update action state =
           Err msg -> Debug.crash msg
       NoOp -> state
 
---render : RenderFunc State Tag Action
---render state = viewGraph state
+render : RenderFunc State Tag Action
+render state = viewGraph state

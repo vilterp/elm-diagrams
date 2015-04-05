@@ -9,6 +9,7 @@ import Diagrams.FullWindow as DFW
 import Diagrams.Interact as DI
 
 import GraphEditor.Model (..)
+import GraphEditor.TestData (initState)
 import GraphEditor.Controller as Cont
 
 -- DATA

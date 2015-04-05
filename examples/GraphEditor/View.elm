@@ -41,14 +41,13 @@ portColor = Color.yellow
 
 -- actions
 
--- TODO: this is fucking terrible
-posNodeActions nodeId dragState =
+posNodeActions nodePath dragState =
     case dragState of
       Nothing -> { emptyActionSet | mouseDown <- Just <| stopBubbling <|
-                                      \(MouseEvent evt) -> DragNodeStart { nodeId = nodeId, offset = evt.offset } }
+                                      \(MouseEvent evt) -> DragNodeStart { nodePath = nodePath, offset = evt.offset } }
       _ -> emptyActionSet
 
-nodeXOutActions nodeId = { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveNode nodeId }
+nodeXOutActions nodePath = { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveNode nodePath }
 
 edgeXOutActions edge = { emptyActionSet | click <- Just <| stopBubbling <| always <| RemoveEdge edge }
 
@@ -110,9 +109,9 @@ inSlotLabel sid =
       IfFalseSlot -> "if false"
 
 inSlot : State -> InPortId -> LayoutRow Tag Action
-inSlot state (nodeId, slotId) =
-    let stateColor = portStateColorCode <| inPortState state (nodeId, slotId)
-    in flexRight <| hcat [ tagWithActions (InPortT slotId) (inPortActions (nodeId, slotId) state)
+inSlot state (nodePath, slotId) =
+    let stateColor = portStateColorCode <| inPortState state (nodePath, slotId)
+    in flexRight <| hcat [ tagWithActions (InPortT slotId) (inPortActions (nodePath, slotId) state)
                               <| portCirc stateColor
                          , hspace 5
                          , text (inSlotLabel slotId) slotLabelStyle
@@ -126,18 +125,18 @@ outSlotLabel sid =
       FuncValueSlot -> "" -- not used
 
 outSlot : State -> OutPortId -> LayoutRow Tag Action
-outSlot state (nodeId, slotId) =
-    let stateColor = portStateColorCode <| outPortState state (nodeId, slotId)
+outSlot state (nodePath, slotId) =
+    let stateColor = portStateColorCode <| outPortState state (nodePath, slotId)
     in flexLeft <| hcat [ text (outSlotLabel slotId) slotLabelStyle
                         , hspace 5
-                        , tagWithActions (OutPortT slotId) (outPortActions (nodeId, slotId))
+                        , tagWithActions (OutPortT slotId) (outPortActions (nodePath, slotId))
                             <| portCirc stateColor
                         ]
 
-nodeTitle : String -> NodeId -> Diagram Tag Action
-nodeTitle name nodeId =
+nodeTitle : String -> NodePath -> Diagram Tag Action
+nodeTitle name nodePath =
     let title = text name titleStyle
-        xOut = tagWithActions XOut (nodeXOutActions nodeId) <| nodeXGlyph
+        xOut = tagWithActions XOut (nodeXOutActions nodePath) <| nodeXGlyph
     in hcat <| [ xOut
                , hspace 5
                , title
@@ -147,46 +146,49 @@ nodeTitle name nodeId =
 type SlotGroup = InputGroup (List InSlotId)
                | OutputGroup (List OutSlotId)
 
-nodeDiagram : NodeId -> State -> LayoutRow Tag Action -> List SlotGroup -> Color.Color -> Diagram Tag Action
-nodeDiagram nodeId state titleRow slotGroups color =
+nodeDiagram : NodePath -> State -> LayoutRow Tag Action -> List SlotGroup -> Color.Color -> Diagram Tag Action
+nodeDiagram nodePath state titleRow slotGroups color =
     let viewGroup : SlotGroup -> List (LayoutRow Tag Action)
         viewGroup group =
             case group of
-              InputGroup ids -> L.map (\inSlotId -> inSlot state (nodeId, inSlotId)) ids
-              OutputGroup ids -> L.map (\outSlotId -> outSlot state (nodeId, outSlotId)) ids
+              InputGroup ids -> L.map (\inSlotId -> inSlot state (nodePath, inSlotId)) ids
+              OutputGroup ids -> L.map (\outSlotId -> outSlot state (nodePath, outSlotId)) ids
     in background (fillAndStroke (C.Solid color) defaultStroke) <|
-          layout <| [titleRow, hrule nodeTopDivider 3] ++ (intercalate [hrule nodeMiddleDivider 3] (L.map viewGroup slotGroups))
+          layout <| [titleRow, hrule nodeTopDivider 3]
+                      ++ (intercalate [hrule nodeMiddleDivider 3] (L.map viewGroup slotGroups))
 
 -- TODO: can cache diagram in PosNode to improve performance
-viewPosNode : State -> PosNode -> Diagram Tag Action
-viewPosNode state pn =
-  viewNode pn.node pn.id state
-  |> tagWithActions (NodeIdT pn.id) (posNodeActions pn.id state.dragState)
-  |> move pn.pos
+viewPosNode : State -> NodePath -> PosNode -> Diagram Tag Action
+viewPosNode state pathAbove pn =
+  let nodePath = pathAbove ++ [pn.id]
+  in viewNode pn.node nodePath state
+      |> tagWithActions (NodeIdT pn.id) (posNodeActions nodePath state.dragState)
+      |> move pn.pos
 
-viewNode : Node -> NodeId -> State -> Diagram Tag Action
-viewNode node nodeId state =
+viewNode : Node -> NodePath -> State -> Diagram Tag Action
+viewNode node nodePath state =
     case node of
-      ApNode attrs -> viewApNode attrs nodeId state
-      IfNode -> viewIfNode nodeId state
+      ApNode attrs -> viewApNode attrs nodePath state
+      IfNode -> viewIfNode nodePath state
+      LambdaNode _ -> empty
 
 -- TODO: padding is awkward
-viewApNode : ApNodeAttrs -> NodeId -> State -> Diagram Tag Action
-viewApNode node nodeId state =
-    let funcOutPortColor = portStateColorCode <| outPortState state (nodeId, FuncValueSlot)
-        funcOutPort = tagWithActions (OutPortT FuncValueSlot) (outPortActions (nodeId, FuncValueSlot))
+viewApNode : ApNodeAttrs -> NodePath -> State -> Diagram Tag Action
+viewApNode node nodePath state =
+    let funcOutPortColor = portStateColorCode <| outPortState state (nodePath, FuncValueSlot)
+        funcOutPort = tagWithActions (OutPortT FuncValueSlot) (outPortActions (nodePath, FuncValueSlot))
                           <| portCirc funcOutPortColor
-        titleRow = flexCenter (nodeTitle node.title nodeId) funcOutPort
+        titleRow = flexCenter (nodeTitle node.title nodePath) funcOutPort
         params = InputGroup <| L.map ApParamSlot node.params
         results = OutputGroup <| L.map ApResultSlot node.results
-    in nodeDiagram nodeId state titleRow [params, results] Color.lightBlue -- TODO: lighter
+    in nodeDiagram nodePath state titleRow [params, results] Color.lightBlue -- TODO: lighter
 
-viewIfNode : NodeId -> State -> Diagram Tag Action
-viewIfNode nodeId state =
-    let titleRow = flexRight (nodeTitle "If" nodeId)
+viewIfNode : NodePath -> State -> Diagram Tag Action
+viewIfNode nodePath state =
+    let titleRow = flexRight (nodeTitle "If" nodePath)
         inSlots = InputGroup [IfCondSlot, IfTrueSlot, IfFalseSlot]
         outSlots = OutputGroup [IfResultSlot]
-    in nodeDiagram nodeId state titleRow [inSlots, outSlots] Color.lightPurple
+    in nodeDiagram nodePath state titleRow [inSlots, outSlots] Color.lightPurple
 
 --viewLambdaNode : ...
 
@@ -207,18 +209,31 @@ viewGenericEdge fromCoords toCoords =
              edgeStyle
 
 viewDraggingEdge : OutPortId -> Diagram Tag Action -> Point -> Diagram Tag Action
-viewDraggingEdge (fromNode, fromPort) nodesDia mousePos =
-   let fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
-   in viewGenericEdge fromCoords mousePos
+viewDraggingEdge outPort nodesDia mousePos =
+   viewGenericEdge (getOutPortCoords nodesDia outPort) mousePos
+
+-- TODO: these are annoyingly similar
+getOutPortCoords : Diagram Tag Action -> OutPortId -> Point
+getOutPortCoords nodesDia outPort =
+    let (nodePath, slotId) = outPort
+        tagPath = L.map NodeIdT nodePath
+    in case getCoords nodesDia (tagPath ++ [OutPortT slotId]) of
+         Just pt -> pt
+         Nothing -> Debug.crash ("path not found: " ++ (toString nodePath))
+
+getInPortCoords : Diagram Tag Action -> InPortId -> Point
+getInPortCoords nodesDia outPort =
+   let (nodePath, slotId) = outPort
+       tagPath = L.map NodeIdT nodePath
+   in case getCoords nodesDia (tagPath ++ [InPortT slotId]) of
+        Just pt -> pt
+        Nothing -> Debug.crash ("path not found: " ++ (toString nodePath))
 
 getEdgeCoords : Diagram Tag Action -> Edge -> { from : Point, to : Point }
 getEdgeCoords nodesDia edg =
-    let (fromNode, fromPort) = edg.from
-        (toNode, toPort) = edg.to
-        -- TODO: not sure how to not have these incomplete pattern matches
-        fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
-        toCoords = case getCoords nodesDia [NodeIdT toNode, InPortT toPort] of { Just pt -> pt }
-    in { from = fromCoords, to = toCoords }
+  { from = getOutPortCoords nodesDia edg.from
+  , to = getInPortCoords nodesDia edg.to
+  }
 
 viewEdgeXOut : Diagram Tag Action -> Edge -> Diagram Tag Action
 viewEdgeXOut nodesDia edge =
@@ -227,7 +242,7 @@ viewEdgeXOut nodesDia edge =
 
 viewGraph : State -> Diagram Tag Action
 viewGraph state = 
-    let nodes = zcat <| L.map (viewPosNode state) <| D.values state.graph.nodes
+    let nodes = zcat <| L.map (viewPosNode state []) <| D.values state.graph.nodes
         edges = zcat <| L.map (viewEdge nodes) state.graph.edges
         edgeXOuts = zcat <| L.map (viewEdgeXOut nodes) state.graph.edges
         draggingEdge = case state.dragState of
