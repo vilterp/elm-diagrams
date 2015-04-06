@@ -22,6 +22,7 @@ import List as L
 import Diagrams.Core (..)
 import Diagrams.Envelope (..)
 import Diagrams.Align (..)
+import Diagrams.Pad (..)
 
 type alias Width = Float
 
@@ -91,5 +92,7 @@ flexCenter ldia rdia = [block ldia, spring, block rdia]
 flexAll : (Width -> Diagram t a) -> LayoutRow t a
 flexAll f = [expando 0 f]
 
-hRule : C.LineStyle -> LayoutRow t a
-hRule ls = flexAll (\w -> hline w ls)
+-- TODO: this should be camel case -- have to change hspace, etc too
+{-| Horizontal ruling, with given vertical padding on top and bottom. -}
+hrule : C.LineStyle -> Float -> LayoutRow t a
+hrule ls vPadding = flexAll (\w -> padSpecific vPadding vPadding 0 0 <| hline w ls)

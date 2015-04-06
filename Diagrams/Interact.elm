@@ -20,6 +20,7 @@ import Window
 import Mouse
 
 import List as L
+import Maybe as M
 import Graphics.Element as E
 import Graphics.Collage as C
 
@@ -34,10 +35,15 @@ import Debug
 -- BUG: if A is on top of and within B, entering A should not count as leaving B.
 -- shit, I guess the pick path should really be a pick tree. #@$@
 
--- TODO: keep both unzipped for perforance?
-type alias MouseState t a = { isDown : Bool, overPath : PickPath t a, overTags : List t }
+-- TODO(perf): keep both unzipped for perforance?
+type alias MouseState t a =
+    { isDown : Bool
+    , overPath : PickPath t a
+    , overTags : List t
+    , tagPathOnMouseDown : Maybe (List t)
+    }
 
-initMouseState = { isDown = False, overPath = [], overTags = [] }
+initMouseState = { isDown = False, overPath = [], overTags = [], tagPathOnMouseDown = Nothing }
 
 type alias InteractionState m t a =
     { mouseState : MouseState t a
@@ -66,7 +72,8 @@ makeFoldUpdate : UpdateFunc m a -> RenderFunc m t a -> InteractUpdateFunc m t a
 makeFoldUpdate updateF renderF =
     \(loc, evt) intState ->
         let (newMS, actions) = processMouseEvent intState.diagram intState.mouseState evt
-            watched = Debug.log "actions" actions
+            a = Debug.watch "actions" actions
+            b = Debug.watch "mouseState" <| L.map .tag newMS.overPath
             -- new model
             oldModel = intState.modelState
             newModel = L.foldr updateF oldModel actions
@@ -77,7 +84,7 @@ makeFoldUpdate updateF renderF =
                          else renderF newModel
         in { mouseState = newMS
            , diagram = newDiagram
-           , modelState = Debug.watch "state" <| newModel
+           , modelState = newModel
            }
 
 initInteractState : RenderFunc m t a -> m -> InteractionState m t a
@@ -95,16 +102,25 @@ new `MouseDiagram` with list of actions triggered by this mouse event. -}
 processMouseEvent : Diagram t a -> MouseState t a -> PrimMouseEvent -> (MouseState t a, List a)
 processMouseEvent diagram mouseState (evt, mousePos) =
     let applyActions overPath = mapWithEarlyStop (\(pt, e2a) -> e2a <| MouseEvent { pickPath = overPath, offset = pt })
-        overPath = Debug.log "op" <| pick diagram mousePos -- need to pick every time because actions may have changed
+        overPath = pick diagram mousePos -- need to pick every time because actions may have changed
     in case evt of
          MouseDownEvt -> let actions = L.filterMap (getOffsetAndMember .mouseDown) overPath
-                         in ( { mouseState | isDown <- True }
+                         in ( { mouseState | isDown <- True
+                                           , tagPathOnMouseDown <- Just <| L.map .tag overPath }
                             , applyActions overPath actions
                             )
          MouseUpEvt -> let overTags = L.map .tag overPath
                            mouseUps = L.filterMap (getOffsetAndMember .mouseUp) overPath
-                           clicks = L.filterMap (getOffsetAndMember .click) mouseState.overPath
-                       in ( { mouseState | isDown <- False }
+                           --a = Debug.log "---------------" ()
+                           --b = Debug.log "op:" overPath
+                           --c = Debug.log "ppomd:" mouseState.tagPathOnMouseDown
+                           --d = Debug.log "match" (b == (M.withDefault [] c))
+                           -- TODO: filter for ones that have same pick path on mouse down as now (?)
+                           clicks = if L.map .tag overPath == M.withDefault [] mouseState.tagPathOnMouseDown
+                                    then L.filterMap (getOffsetAndMember .click) overPath
+                                    else []
+                       in ( { mouseState | isDown <- False
+                                         , tagPathOnMouseDown <- Nothing }
                           , applyActions overPath <| clicks ++ mouseUps
                           )
          MouseMoveEvt -> let oldOverPath = mouseState.overPath

@@ -1,7 +1,7 @@
 module Diagrams.FillStroke where
 
 {-|
-@docs FillStroke, justFill, justStroke, fillAndStroke, invisible, justSolidFill
+@docs FillStroke, justFill, justStroke, fillAndStroke, invisible, justSolidFill, withAlpha
 -}
 
 import Graphics.Collage as C
@@ -35,3 +35,10 @@ halfStrokeWidth : FillStroke -> Float
 halfStrokeWidth fs = case fs.stroke of
                       Just ls -> ls.width/2
                       Nothing -> 0
+
+-- should be in color lib
+
+withAlpha : Color.Color -> Float -> Color.Color
+withAlpha c a' = case c of
+                  Color.RGBA r g b a -> Color.RGBA r g b a'
+                  Color.HSLA h s l a -> Color.HSLA h s l a'
