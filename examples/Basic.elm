@@ -35,17 +35,18 @@ type Action = ClickCirc Point
 
 defLine = C.defaultLine
 
+testDia : Diagram Tag Action
 testDia = let aPath = path [(-50,-50), (30, 100)] C.defaultLine
               rectOrange = tagWithActions RectOrange
-                              { emptyActionSet | mouseEnter <- Just EnterOrange
-                                               , mouseLeave <- Just LeaveOrange }
+                              { emptyActionSet | mouseEnter <- Just <| keepBubbling <| (\(MouseEvent evt) -> EnterOrange evt.offset)
+                                               , mouseLeave <- Just <| keepBubbling <| (\(MouseEvent evt) -> LeaveOrange evt.offset) }
                               <| rect 50 70 (fillAndStroke (C.Solid Color.orange) { defLine | width <- 20, cap <- C.Padded })
               rectBlue = tagWithActions RectBlue
-                              { emptyActionSet | mouseMove <- Just MoveBlue }
+                              { emptyActionSet | mouseMove <- Just <| keepBubbling <| (\(MouseEvent evt) -> MoveBlue evt.offset) }
                               <| rect 70 50 (justSolidFill Color.blue)
               rects = vcat [ rectOrange , rectBlue ]
               circ = tagWithActions Circ
-                            { emptyActionSet | click <- Just ClickCirc }
+                            { emptyActionSet | click <- Just <| keepBubbling <| (\(MouseEvent evt) -> ClickCirc evt.offset) }
                             <| circle 20 (fillAndStroke (C.Solid Color.yellow) { defLine | width <- 2, cap <- C.Padded })
               justText = text "Foo" (let ds = T.defaultStyle in {ds | bold <- True})
               someText = tag Textt <| background (justSolidFill Color.lightBlue) <| pad 5 <| justText
@@ -65,6 +66,6 @@ initModel : Model
 initModel = ()
 
 diagrams : Signal (Diagram Tag Action)
-diagrams = interactFold updateF renderF fullWindowCollageLoc initModel
+diagrams = interactFold updateF renderF fullWindowCollageLocFunc initModel
 
 main = Signal.map2 fullWindowView Window.dimensions diagrams
