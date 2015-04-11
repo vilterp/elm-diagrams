@@ -51,10 +51,10 @@ pick diag point =
                           xs -> Just <| PickLayers xs
          Tag t acts diagram -> 
             pick diagram point |> M.map (\res -> PickTag { tag = t
-                                                        , actionSet = acts
-                                                        , offset = point
-                                                        , child = res
-                                                        })
+                                                         , actionSet = acts
+                                                         , offset = point
+                                                         , child = res
+                                                         })
          TransformD trans diagram -> pick diagram (applyTrans (invertTrans trans) point)
 
 -- like M.oneOf, for lists...

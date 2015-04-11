@@ -130,15 +130,23 @@ processMouseEvent diagram mouseState (evt, mousePos) =
 
 -- helpers for processMouseEvent
 
+type alias PickedTag t a = { actionSet : ActionSet t a
+                           , offset : Point
+                           , tag : t
+                           , path : PickPath t
+                           }
+
 preorderTraverse : Maybe (PickTree t a) -> List (PickedTag t a)
 preorderTraverse maybeTree =
-    let recurse tree = case tree of
-          PickLeaf -> []
-          PickTag {tag, offset, actionSet, child} ->
-              (recurse child) ++ [{ offset = offset, actionSet = actionSet, tag = tag }]
-          PickLayers layers -> L.concatMap recurse layers
+    let recurse path tree =
+          case tree of
+            PickLeaf -> []
+            PickTag {tag, offset, actionSet, child} ->
+                (recurse ({tag=tag, offset=offset}::path) child)
+                  ++ [{ offset = offset, actionSet = actionSet, tag = tag, path = path }]
+            PickLayers layers -> L.concatMap (recurse path) layers
     in case maybeTree of
-      Just tree -> recurse tree
+      Just tree -> recurse [] tree
       Nothing -> []
 
 getHandler : (ActionSet t a -> Maybe (EventToAction t a))
@@ -150,7 +158,7 @@ getHandler getMember pTag =
 
 applyActions : List (PickedTag t a, EventToAction t a) -> List a
 applyActions pickedTags = 
-    mapWithEarlyStop (\(pTag, e2a) -> e2a <| MouseEvent { offset = pTag.offset })
+    mapWithEarlyStop (\(pTag, e2a) -> e2a <| MouseEvent { offset = pTag.offset, path = pTag.path })
                      pickedTags
 
 {-| Like map, but stops if the second element of the function result is True. -}

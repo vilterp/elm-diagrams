@@ -18,22 +18,20 @@ import Diagrams.Geom (..)
 {-| (Tag, Coordinates) pairs from bottom of tree to top; result of
 calling `pick` (see below). -}
 type PickTree t a
-    = PickTag { tag : t
+    = PickLayers (List (PickTree t a))
+    | PickLeaf
+    | PickTag { tag : t
               , offset : Point
               , actionSet : ActionSet t a
               , child : PickTree t a
               }
-    | PickLayers (List (PickTree t a))
-    | PickLeaf
 
+type alias PickPath t = List (PickPathElem t)
+type alias PickPathElem t = { tag : t, offset : Point }
 
-type alias PickPath t a = List (PickedTag t a)
-type alias PickedTag t a = { actionSet : ActionSet t a
-                           , offset : Point
-                           , tag : t
-                           }
-
-type MouseEvent t a = MouseEvent { offset : Point } -- TODO: path
+type MouseEvent t a = MouseEvent { offset : Point
+                                 , path : PickPath t
+                                 }
 
 {-| Given an event, return (a) an action resulting from that event, and (b) whether to stop this
 mouse event from "bubbling up" to handlers higher up the tree. -}
@@ -70,5 +68,5 @@ last l = case l of
            [x] -> x
            (x::xs) -> last xs
 
---collageMousePos : MouseEvent t a -> Point
---collageMousePos (MouseEvent evt) = (last evt.pickTree).offset
+collageMousePos : MouseEvent t a -> Point
+collageMousePos (MouseEvent evt) = (last evt.path).offset
