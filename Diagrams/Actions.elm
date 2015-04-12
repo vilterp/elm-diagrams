@@ -68,5 +68,6 @@ last l = case l of
            [x] -> x
            (x::xs) -> last xs
 
+-- TODO: maybe mousePosAtTag : MouseEvent t a -> t -> Point
 collageMousePos : MouseEvent t a -> Point
 collageMousePos (MouseEvent evt) = (last evt.path).offset

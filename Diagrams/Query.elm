@@ -2,7 +2,7 @@ module Diagrams.Query where
 
 {-| Retreive information about laid-out diagrams.
 
-@docs pick, TagPath, getCoords
+@docs pick, getCoords
 -}
 
 import List as L
@@ -15,6 +15,7 @@ import Diagrams.Geom (..)
 import Diagrams.Actions (..)
 import Diagrams.FillStroke (..)
 
+-- TODO: new docs
 {-| Given a Diagram t and a point (e.g. of the mouse), return the list of Tag nodes between
 the diagram root and the leaf node the point is within (a primitive visual element), along
 with the point's offset from the local origin at each level. If the mouse is not over a leaf

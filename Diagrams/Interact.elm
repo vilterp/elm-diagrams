@@ -32,17 +32,13 @@ import Diagrams.Wiring (..)
 
 import Debug
 
--- BUG: if A is on top of and within B, entering A should not count as leaving B.
--- shit, I guess the pick path should really be a pick tree. #@$@
-
--- TODO(perf): keep both unzipped for perforance?
 type alias MouseState t a =
     { isDown : Bool
-    , overTree : Maybe (PickTree t a)
-    , tagPathOnMouseDown : Maybe (List t)
+    , overPickedTags : List (PickedTag t a)
+    , overPathsOnMouseDown : Maybe (List (List t))
     }
 
-initMouseState = { isDown = False, overTree = Nothing, tagPathOnMouseDown = Nothing }
+initMouseState = { isDown = False, overPickedTags = [], overPathsOnMouseDown = Nothing }
 
 type alias InteractionState m t a =
     { mouseState : MouseState t a
@@ -76,7 +72,7 @@ makeFoldUpdate updateF renderF =
             newDiagram = renderF newModel
         in { mouseState = newMS
            , diagram = newDiagram
-           , modelState = newModel
+           , modelState = Debug.watch "State" newModel
            }
 
 initInteractState : RenderFunc m t a -> m -> InteractionState m t a
@@ -93,38 +89,38 @@ initInteractState render model =
 new `MouseDiagram` with list of actions triggered by this mouse event. -}
 processMouseEvent : Diagram t a -> MouseState t a -> PrimMouseEvent -> (MouseState t a, List a)
 processMouseEvent diagram mouseState (evt, mousePos) =
-    let overTree = Debug.watch "OT" <| pick diagram mousePos -- need to pick every time because actions may have changed
+    let overTree = pick diagram mousePos -- need to pick every time because actions may have changed
         overPickedTags = preorderTraverse overTree
-        overTags = L.map .tag overPickedTags
+        overPaths = tagPaths overPickedTags
+        oldOverPickedTags = mouseState.overPickedTags
+        oldOverPaths = tagPaths oldOverPickedTags
     in case evt of
-         MouseMoveEvt -> let oldOverPickedTags = preorderTraverse mouseState.overTree -- TODO: save this; don't do it twice
-                             oldOverTags = L.map .tag oldOverPickedTags
-                             enters = L.filterMap (getHandler .mouseEnter) <|
-                                L.filter (\pTag -> not <| L.member pTag.tag oldOverTags) overPickedTags
+         MouseMoveEvt -> let enters = L.filterMap (getHandler .mouseEnter) <|
+                                L.filter (\pTag -> not <| L.member (tagPath pTag) oldOverPaths) overPickedTags
                              leaves = L.filterMap (getHandler .mouseLeave) <|
-                                L.filter (\pTag -> not <| L.member pTag.tag overTags) oldOverPickedTags
+                                L.filter (\pTag -> not <| L.member (tagPath pTag) overPaths) oldOverPickedTags
                              moves = L.filterMap (getHandler .mouseMove) <|
-                                L.filter (\pTag -> L.member pTag.tag oldOverTags) overPickedTags
-                         in ( { mouseState | overTree <- overTree }
+                                L.filter (\pTag -> L.member (tagPath pTag) oldOverPaths) overPickedTags
+                         in ( { mouseState | overPickedTags <- overPickedTags }
                             , applyActions <| enters ++ leaves ++ moves
                             )
          MouseDownEvt -> ( { mouseState | isDown <- True
-                                        , tagPathOnMouseDown <- Just overTags
-                                        , overTree <- overTree }
+                                        , overPathsOnMouseDown <- Just overPaths
+                                        , overPickedTags <- overPickedTags }
                          , applyActions <| L.filterMap (getHandler .mouseDown) overPickedTags
                          )
          MouseUpEvt -> let mouseUps = L.filterMap (getHandler .mouseUp) overPickedTags
                            --a = Debug.log "---------------" ()
                            --b = Debug.log "op:" overPath
-                           --c = Debug.log "ppomd:" mouseState.tagPathOnMouseDown
+                           --c = Debug.log "ppomd:" mouseState.overPathsOnMouseDown
                            --d = Debug.log "match" (b == (M.withDefault [] c))
                            -- TODO: filter for ones that have same pick path on mouse down as now (?)
-                           clicks = if overTags == M.withDefault [] mouseState.tagPathOnMouseDown
+                           clicks = if overPaths == M.withDefault [] mouseState.overPathsOnMouseDown
                                     then L.filterMap (getHandler .click) overPickedTags
                                     else []
                        in ( { mouseState | isDown <- False
-                                         , tagPathOnMouseDown <- Nothing
-                                         , overTree <- overTree }
+                                         , overPathsOnMouseDown <- Nothing
+                                         , overPickedTags <- overPickedTags }
                           , applyActions <| clicks ++ mouseUps
                           )
 
@@ -136,14 +132,22 @@ type alias PickedTag t a = { actionSet : ActionSet t a
                            , path : PickPath t
                            }
 
+tagPaths : List (PickedTag t a) -> List (List t)
+tagPaths pTags =
+    L.map tagPath pTags
+
+tagPath : PickedTag t a -> List t
+tagPath pTag = L.map .tag pTag.path
+
 preorderTraverse : Maybe (PickTree t a) -> List (PickedTag t a)
 preorderTraverse maybeTree =
     let recurse path tree =
           case tree of
             PickLeaf -> []
             PickTag {tag, offset, actionSet, child} ->
-                (recurse ({tag=tag, offset=offset}::path) child)
-                  ++ [{ offset = offset, actionSet = actionSet, tag = tag, path = path }]
+                let to = {tag=tag, offset=offset}
+                in (recurse ({tag=tag, offset=offset}::path) child)
+                      ++ [{ offset = offset, actionSet = actionSet, tag = tag, path = to::path }]
             PickLayers layers -> L.concatMap (recurse path) layers
     in case maybeTree of
       Just tree -> recurse [] tree
@@ -158,7 +162,7 @@ getHandler getMember pTag =
 
 applyActions : List (PickedTag t a, EventToAction t a) -> List a
 applyActions pickedTags = 
-    mapWithEarlyStop (\(pTag, e2a) -> e2a <| MouseEvent { offset = pTag.offset, path = pTag.path })
+    mapWithEarlyStop (\(pTag, e2a) -> e2a <| Debug.log "ME" <| MouseEvent { offset = pTag.offset, path = pTag.path })
                      pickedTags
 
 {-| Like map, but stops if the second element of the function result is True. -}
