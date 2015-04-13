@@ -29,6 +29,9 @@ type PickTree t a
 type alias PickPath t = List (PickPathElem t)
 type alias PickPathElem t = { tag : t, offset : Point }
 
+{-| Path: list of (tag, offset) from bottom of tree to top.
+Offset: offset at lowest level in tree. -}
+-- TODO: a type variable not needed
 type MouseEvent t a = MouseEvent { offset : Point
                                  , path : PickPath t
                                  }
@@ -68,6 +71,15 @@ last l = case l of
            [x] -> x
            (x::xs) -> last xs
 
--- TODO: maybe mousePosAtTag : MouseEvent t a -> t -> Point
-collageMousePos : MouseEvent t a -> Point
-collageMousePos (MouseEvent evt) = (last evt.path).offset
+mousePosAtPath : MouseEvent t a -> List t -> Maybe Point
+mousePosAtPath (MouseEvent evt) tagPath =
+    let a = Debug.log "pp, tp" (evt.path, tagPath)
+        recurse : PickPath t -> List t -> Maybe Point
+        recurse pp tp =
+          case (pp, tp) of
+            ({tag, offset}::evtTags, [wantedTag]) ->
+                if tag == wantedTag then Just offset else Nothing
+            ({tag, offset}::evtTags, wantedTag::tags) ->
+                if tag == wantedTag then recurse evtTags tags else Nothing
+            _ -> Nothing
+    in recurse (L.reverse evt.path) tagPath

@@ -72,7 +72,7 @@ makeFoldUpdate updateF renderF =
             newDiagram = renderF newModel
         in { mouseState = newMS
            , diagram = newDiagram
-           , modelState = Debug.watch "State" newModel
+           , modelState = newModel
            }
 
 initInteractState : RenderFunc m t a -> m -> InteractionState m t a
@@ -89,7 +89,7 @@ initInteractState render model =
 new `MouseDiagram` with list of actions triggered by this mouse event. -}
 processMouseEvent : Diagram t a -> MouseState t a -> PrimMouseEvent -> (MouseState t a, List a)
 processMouseEvent diagram mouseState (evt, mousePos) =
-    let overTree = pick diagram mousePos -- need to pick every time because actions may have changed
+    let overTree = Debug.watch "OT" <| pick diagram mousePos -- need to pick every time because actions may have changed
         overPickedTags = preorderTraverse overTree
         overPaths = tagPaths overPickedTags
         oldOverPickedTags = mouseState.overPickedTags
