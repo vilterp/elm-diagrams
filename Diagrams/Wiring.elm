@@ -37,11 +37,15 @@ type alias CollageLocFunc = Dims -> CollageLocation
 {-| Given collage location function, return stream of (collage location, mouse event)
 pairs, where mouse coordinates are relative to the center of the collage at its present
 location, and increasing up and to the right. -}
+-- fuckin' BUG: `pointInside` sees offset as middle of box; everything else sees it as top left. fuck.
 makeUpdateStream : CollageLocFunc -> Signal (CollageLocation, PrimMouseEvent)
 makeUpdateStream clf =
     let collageLocs = S.map clf floatWindowDims
         mouseEvts = mouseEvents collageLocs
-    in S.map2 (,) collageLocs mouseEvts
+        tups = S.map2 (,) collageLocs mouseEvts
+    in S.keepIf (\(loc, (evtType, point)) -> point `pointInside` { loc | offset <- (0, 0)})
+                ({dims={width=0, height=0}, offset=(0,0)},(MouseUpEvt,(0,0)))
+                tups
 
 mouseEvents : Signal CollageLocation -> Signal PrimMouseEvent
 mouseEvents loc =
