@@ -38,12 +38,17 @@ type alias MouseState t a =
     , overPathsOnMouseDown : Maybe (List (List t))
     }
 
-initMouseState = { isDown = False, overPickedTags = [], overPathsOnMouseDown = Nothing }
+initMouseState =
+    { isDown = False
+    , overPickedTags = []
+    , overPathsOnMouseDown = Nothing
+    }
 
 type alias InteractionState m t a =
     { mouseState : MouseState t a
     , diagram : Diagram t a
     , modelState : m
+    , renderFun : RenderFunc m t a
     }
 
 type alias RenderFunc m t a = m -> Diagram t a
@@ -70,17 +75,25 @@ makeFoldUpdate updateF renderF =
             d = Debug.log "actions" actions
             newModel = L.foldr updateF intState.modelState actions
             newDiagram = renderF newModel
-        in { mouseState = newMS
-           , diagram = newDiagram
-           , modelState = newModel
-           }
+        in { intState | mouseState <- newMS
+                      , diagram <- newDiagram
+                      , modelState <- newModel
+                      }
 
 initInteractState : RenderFunc m t a -> m -> InteractionState m t a
 initInteractState render model =
     { mouseState = initMouseState
     , modelState = model
     , diagram = render model
+    , renderFun = render
     }
+
+updateModel : (m -> m) -> InteractionState m t a -> InteractionState m t a
+updateModel upFun state =
+    let newModel = upFun state.modelState
+    in { state | modelState <- newModel
+               , diagram <- state.renderFun newModel
+               }
 
 -- BUG: no initial pick path
 
