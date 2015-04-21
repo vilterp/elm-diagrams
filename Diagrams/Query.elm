@@ -50,7 +50,7 @@ pick diag point =
          Circle r fs -> if magnitude point <= r + (halfStrokeWidth fs) then Just PickLeaf else Nothing
          Path pts _ _ -> Nothing -- TODO implement picking for paths
          Rect w h fs -> handleBox w h (halfStrokeWidth fs)
-         Text _ _ te -> handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
+         Text _ {width, height} -> handleBox width height 0
          Group dias -> case L.filterMap (\d -> pick d point) dias of
                           [] -> Nothing
                           [x] -> Just x

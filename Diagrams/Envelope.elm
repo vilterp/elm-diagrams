@@ -47,7 +47,7 @@ envelope dir dia =
                                                   Down -> max 0 <| env - ty
                                                   Right -> max 0 <| env + tx
                                                   Left -> max 0 <| env - tx
-        Text str ts te -> handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
+        Text _ {width, height} -> handleBox width height 0
         Path path fs _ -> let xs = L.map fst path
                               ys = L.map snd path
                           in case dir of

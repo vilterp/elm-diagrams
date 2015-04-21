@@ -54,12 +54,12 @@ import Graphics.Collage as C
 import Graphics.Element as E
 import Text as T
 import List as L
-import Transform2D
-import Color
+import Maybe as M
 
 import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.Actions exposing (..)
+import Diagrams.MeasureText as DMT
 
 type PathType = ClosedP | OpenP
 
@@ -71,7 +71,7 @@ type Diagram t a
     = Circle Float FillStroke
     | Rect Float Float FillStroke
     | Path (List Point) FillStroke PathType
-    | Text String T.Style E.Element
+    | Text T.Text Dims
     -- transformation
     | TransformD Transform (Diagram t a)
     -- group
@@ -100,8 +100,10 @@ polygon points fs = Path points fs ClosedP
 
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
 text : String -> T.Style -> Diagram t a
-text txt style = let te = textElem txt style
-                 in Text txt style te
+text txt style = let text = T.fromString txt |> T.style style
+                     height = (M.withDefault 16 <| style.height) * 1.1
+                     width = DMT.textWidth text
+                 in Text text { width=width, height=height }
 
 {-| Spacer with given width and height; renders as transparent. -}
 spacer : Float -> Float -> Diagram t a
@@ -183,13 +185,10 @@ render d = let handleFS fs pathType shape =
                 TransformD (Scale s) dia -> C.scale s <| render dia
                 TransformD (Rotate r) dia -> C.rotate r <| render dia
                 TransformD (Translate x y) dia -> C.move (x, y) <| render dia
-                Text str ts te -> C.text <| T.style ts <| T.fromString str
+                Text txt _ -> C.text txt
                 Path path fs ty -> handleFS fs ty path
                 Rect w h fs -> handleFS fs ClosedP <| C.rect w h
                 Circle r fs -> handleFS fs ClosedP <| C.circle r
-
-textElem : String -> T.Style -> E.Element
-textElem str ts = T.fromString str |> T.style ts |> E.centered
 
 -- shortcuts
 
