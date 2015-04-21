@@ -6,10 +6,11 @@ module Diagrams.Envelope where
 
 import List as L
 import Graphics.Element as E
+import Maybe as M
 
-import Diagrams.Core (..)
-import Diagrams.Geom (..)
-import Diagrams.FillStroke (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Geom exposing (..)
+import Diagrams.FillStroke exposing (..)
 
 type Direction = Up | Down | Left | Right
 
@@ -31,7 +32,7 @@ envelope dir dia =
         Tag _ _ dia' -> envelope dir dia'
         Group dias -> case dias of -- TODO: cache
                         [] -> 0
-                        _ -> L.maximum <| L.map (envelope dir) dias
+                        _ -> def0 <| L.maximum <| L.map (envelope dir) dias
         TransformD (Scale s) diag -> s * (envelope dir diag)
         TransformD (Rotate r) rotDia ->
             case rotDia of
@@ -49,10 +50,10 @@ envelope dir dia =
         Path path fs _ -> let xs = L.map fst path
                               ys = L.map snd path
                           in case dir of
-                               Left -> -(L.minimum xs)
-                               Right -> L.maximum xs
-                               Up -> L.maximum ys
-                               Down -> -(L.minimum ys)
+                               Left -> -(def0 <| L.minimum xs)
+                               Right -> def0 <| L.maximum xs
+                               Up -> def0 <| L.maximum ys
+                               Down -> -(def0 <| L.minimum ys)
         Rect w h fs -> handleBox w h (halfStrokeWidth fs)
         Circle r fs -> r + (halfStrokeWidth fs)
 
@@ -68,3 +69,6 @@ boundingBox dia = { up = envelope Up dia
                   , left = envelope Left dia
                   , right = envelope Right dia
                   }
+
+def0 : Maybe number -> number
+def0 m = M.withDefault 0 m

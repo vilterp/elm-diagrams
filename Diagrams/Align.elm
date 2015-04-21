@@ -10,9 +10,9 @@ module Diagrams.Align where
 
 import List as L
 
-import Diagrams.Core (..)
-import Diagrams.Geom (..)
-import Diagrams.Envelope (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Geom exposing (..)
+import Diagrams.Envelope exposing (..)
 
 -- Relative Positioning
 

@@ -1,6 +1,6 @@
 module GraphEditor.Model where
 
-import Diagrams.Geom (Point)
+import Diagrams.Geom exposing (Point)
 
 import Dict as D
 import List as L

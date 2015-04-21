@@ -18,11 +18,12 @@ TODO: generalize to vertical
 
 import Graphics.Collage as C
 import List as L
+import Maybe as M
 
-import Diagrams.Core (..)
-import Diagrams.Envelope (..)
-import Diagrams.Align (..)
-import Diagrams.Pad (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Envelope exposing (..)
+import Diagrams.Align exposing (..)
+import Diagrams.Pad exposing (..)
 
 type alias Width = Float
 
@@ -37,7 +38,7 @@ type alias LayoutRow t a = List (FlexDiagram t a)
 -- layout
 
 layout : List (LayoutRow t a) -> Diagram t a
-layout rows = let decidedWidth = L.maximum <| L.map rowMinWidth rows
+layout rows = let decidedWidth = L.map rowMinWidth rows |> L.maximum |> M.withDefault 0
               in vcatA LeftA <| L.map (renderRow decidedWidth) rows
 
 fdMinWidth : FlexDiagram t a -> Width

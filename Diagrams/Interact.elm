@@ -24,11 +24,11 @@ import Maybe as M
 import Graphics.Element as E
 import Graphics.Collage as C
 
-import Diagrams.Core (..)
-import Diagrams.Query (..)
-import Diagrams.Geom (..)
-import Diagrams.Actions (..)
-import Diagrams.Wiring (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Query exposing (..)
+import Diagrams.Geom exposing (..)
+import Diagrams.Actions exposing (..)
+import Diagrams.Wiring exposing (..)
 
 import Debug
 

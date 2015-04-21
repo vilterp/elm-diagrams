@@ -49,14 +49,12 @@ import Graphics.Collage as C
 import Graphics.Element as E
 import Text as T
 import List as L
-import List ((::))
-import Maybe as M
 import Transform2D
 import Color
 
-import Diagrams.Geom (..)
-import Diagrams.FillStroke (..)
-import Diagrams.Actions (..)
+import Diagrams.Geom exposing (..)
+import Diagrams.FillStroke exposing (..)
+import Diagrams.Actions exposing (..)
 
 type PathType = ClosedP | OpenP
 
@@ -159,15 +157,20 @@ scale s d = TransformD (Scale s) d
 
 render : Diagram t a -> C.Form
 render d = let handleFS fs pathType shape =
-                 let filled = case fs.fill of
-                                Just fillStyle -> [C.fill fillStyle shape]
+                let filled =  case fs.fill of
+                                Just fillStyle ->
+                                    case fillStyle of
+                                      Solid color -> [C.filled color shape]
+                                      Texture src -> [C.textured src shape]
+                                      Grad grad -> [C.gradient grad shape]
                                 Nothing -> []
-                     stroked = case fs.stroke of
-                                 Just strokeStyle -> case pathType of
-                                                       ClosedP -> [C.outlined strokeStyle shape]
-                                                       OpenP -> [C.traced strokeStyle shape]
-                                 Nothing -> []
-                 in C.group <| stroked ++ filled
+                    stroked = case fs.stroke of
+                                Just strokeStyle ->
+                                case pathType of
+                                  ClosedP -> [C.outlined strokeStyle shape]
+                                  OpenP -> [C.traced strokeStyle shape]
+                                Nothing -> []
+                in C.group <| stroked ++ filled
            in case d of
                 Tag _ _ dia -> render dia
                 Group dias -> C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
@@ -181,7 +184,7 @@ render d = let handleFS fs pathType shape =
                 Circle r fs -> handleFS fs ClosedP <| C.circle r
 
 textElem : String -> T.Style -> E.Element
-textElem str ts = T.fromString str |> T.style ts |> T.centered
+textElem str ts = T.fromString str |> T.style ts |> E.centered
 
 -- shortcuts
 

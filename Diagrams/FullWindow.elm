@@ -10,8 +10,8 @@ import Signal as S
 import Graphics.Element as E
 import Graphics.Collage as C
 
-import Diagrams.Wiring (..)
-import Diagrams.Core (..)
+import Diagrams.Wiring exposing (..)
+import Diagrams.Core exposing (..)
 
 fullWindowCollageLocFunc : CollageLocFunc
 fullWindowCollageLocFunc dims = { offset = (0.0,0.0), dims = dims }

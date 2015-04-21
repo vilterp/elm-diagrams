@@ -1,9 +1,9 @@
 module LanguageViz where
 
-import Diagrams.Core (..)
-import Diagrams.Align (..)
-import Diagrams.FillStroke (..)
-import Diagrams.FullWindow (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Align exposing (..)
+import Diagrams.FillStroke exposing (..)
+import Diagrams.FullWindow exposing (..)
 import Window
 import Mouse
 import Signal as S

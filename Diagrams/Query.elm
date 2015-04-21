@@ -6,14 +6,13 @@ module Diagrams.Query where
 -}
 
 import List as L
-import List ((::))
 import Maybe as M
 import Graphics.Element as E
 
-import Diagrams.Core (..)
-import Diagrams.Geom (..)
-import Diagrams.Actions (..)
-import Diagrams.FillStroke (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Geom exposing (..)
+import Diagrams.Actions exposing (..)
+import Diagrams.FillStroke exposing (..)
 
 -- TODO: new docs
 {-| Given a Diagram t and a point (e.g. of the mouse), return the list of Tag nodes between
