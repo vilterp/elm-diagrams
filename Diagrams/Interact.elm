@@ -2,17 +2,21 @@ module Diagrams.Interact where
 
 {-| Abstractions for making diagrams which change as a function of the mouse.
 
+Attach `ActionSet`s (see `Diagrams.Actions`) to diagrams with `Core.tagWithActions`;
+then use `interactFold` or `update` to process mouse interaction. Mouse state (what 
+is being clicked on, etc) is wrapped up inside an `InteractionState` value.
+
+`updateModel` can be used to push in updates from external sources.
+
+Look at GraphEditor for an example. (TODO: better docs / tutorial; explore using
+Mailboxes to push out updates)
+
 # Function Types
-@docs RenderFunc, UpdateFunc, InteractUpdateFunc
+@docs RenderFunc, UpdateFunc
 
 # Interaction
-@docs InteractionState, initInteractionState, interactFold, makeFoldUpdate
+@docs InteractionState, initInteractState, interactFold, update, updateModel
 
-# Mouse Event Processing
-@docs processMouseEvent
-
-# Mouse State
-@docs MouseState, initMouseState
 -}
 
 import Signal as S
@@ -48,51 +52,55 @@ type alias InteractionState m t a =
     { mouseState : MouseState t a
     , diagram : Diagram t a
     , modelState : m
-    , renderFun : RenderFunc m t a
+    , renderFunc : RenderFunc m t a
+    , updateFunc : UpdateFunc m a
     }
 
 type alias RenderFunc m t a = m -> Diagram t a
 type alias UpdateFunc m a = a -> m -> m
-type alias InteractUpdateFunc m t a = (CollageLocation, PrimMouseEvent) -> InteractionState m t a -> InteractionState m t a
 
 {-| Top-level interface to this module. Given
 - how to update the state (type `m`) given an action (type `a`),
 - how to render a diagram given the state,
 - and how to compute the location of the collage on screen from the window dimensions,
 Return a signal of diagrams.
+
+Since it returns a signal, you should only use it if this is the top-level interaction of your app; i.e.
+you aren't making a component that's nestable inside others as in the Elm Architecture. To make a component,
+use `makeFoldUpdate` to build an update function.
 -}
 interactFold : UpdateFunc m a -> RenderFunc m t a -> CollageLocFunc -> m -> Signal (Diagram t a)
 interactFold updateF renderF collageLocF initModel =
-    let states = S.foldp (makeFoldUpdate updateF renderF)
-                         (initInteractState renderF initModel)
+    let states = S.foldp update
+                         (initInteractState updateF renderF initModel)
                          (makeUpdateStream collageLocF)
     in S.map .diagram states
 
-makeFoldUpdate : UpdateFunc m a -> RenderFunc m t a -> InteractUpdateFunc m t a
-makeFoldUpdate updateF renderF =
-    \(loc, evt) intState ->
-        let (newMS, actions) = processMouseEvent intState.diagram intState.mouseState evt
-            d = Debug.log "actions" actions
-            newModel = L.foldr updateF intState.modelState actions
-            newDiagram = renderF newModel
-        in { intState | mouseState <- newMS
-                      , diagram <- newDiagram
-                      , modelState <- newModel
-                      }
+update : (CollageLocation, PrimMouseEvent) -> InteractionState m t a -> InteractionState m t a
+update (loc, evt) intState =
+    let (newMS, actions) = processMouseEvent intState.diagram intState.mouseState evt
+        d = Debug.log "actions" actions
+        newModel = L.foldr intState.updateFunc intState.modelState actions
+        newDiagram = intState.renderFunc newModel
+    in { intState | mouseState <- newMS
+                  , diagram <- newDiagram
+                  , modelState <- newModel
+                  }
 
-initInteractState : RenderFunc m t a -> m -> InteractionState m t a
-initInteractState render model =
+initInteractState : UpdateFunc m a -> RenderFunc m t a -> m -> InteractionState m t a
+initInteractState update render model =
     { mouseState = initMouseState
     , modelState = model
     , diagram = render model
-    , renderFun = render
+    , renderFunc = render
+    , updateFunc = update
     }
 
 updateModel : (m -> m) -> InteractionState m t a -> InteractionState m t a
 updateModel upFun state =
     let newModel = upFun state.modelState
     in { state | modelState <- newModel
-               , diagram <- state.renderFun newModel
+               , diagram <- state.renderFunc newModel
                }
 
 -- BUG: no initial pick path
@@ -123,11 +131,6 @@ processMouseEvent diagram mouseState (evt, mousePos) =
                          , applyActions <| L.filterMap (getHandler .mouseDown) overPickedTags
                          )
          MouseUpEvt -> let mouseUps = L.filterMap (getHandler .mouseUp) overPickedTags
-                           --a = Debug.log "---------------" ()
-                           --b = Debug.log "op:" overPath
-                           --c = Debug.log "ppomd:" mouseState.overPathsOnMouseDown
-                           --d = Debug.log "match" (b == (M.withDefault [] c))
-                           -- TODO: filter for ones that have same pick path on mouse down as now (?)
                            clicks = if overPaths == M.withDefault [] mouseState.overPathsOnMouseDown
                                     then L.filterMap (getHandler .click) overPickedTags
                                     else []
@@ -175,7 +178,7 @@ getHandler getMember pTag =
 
 applyActions : List (PickedTag t a, EventToAction t a) -> List a
 applyActions pickedTags = 
-    mapWithEarlyStop (\(pTag, e2a) -> e2a <| Debug.log "ME" <| MouseEvent { offset = pTag.offset, path = pTag.path })
+    mapWithEarlyStop (\(pTag, e2a) -> e2a <| MouseEvent { offset = pTag.offset, path = pTag.path })
                      pickedTags
 
 {-| Like map, but stops if the second element of the function result is True. -}

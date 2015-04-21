@@ -15,7 +15,8 @@ import Diagrams.FillStroke exposing (..)
 type Direction = Up | Down | Left | Right
 
 {-| Given a Diagram t and a Direction, return the distance in that direction from the origin
-to the closest line which doesn't intersect the content of the diagram.
+to the closest line perpendicular to that direction which doesn't intersect the content of
+the diagram. See the [Haskell diagrams docs][hd] for a visual explanation.
 
  [hd]: http://projects.haskell.org/diagrams/doc/manual.html#envelopes-and-local-vector-spaces
 -}
@@ -63,6 +64,7 @@ width d = (envelope Left d) + (envelope Right d)
 height : Diagram t a -> Float
 height d = (envelope Up d) + (envelope Down d)
 
+{-| Box formed by taking the envelope in all directions. -}
 boundingBox : Diagram t a -> BBox
 boundingBox dia = { up = envelope Up dia
                   , down = envelope Down dia

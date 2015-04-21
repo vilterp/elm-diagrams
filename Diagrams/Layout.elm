@@ -1,7 +1,9 @@
 module Diagrams.Layout where
 
-{-|
+{-| A utility for laying out variable-width diagrams.
+
 TODO: generalize to vertical
+
 # Types
 @docs FlexDiagram, Width, LayoutRow
 
@@ -12,7 +14,7 @@ TODO: generalize to vertical
 @docs spring, block, expando, strut
 
 # Helpers
-@docs centered, flexLeft, flexRight, flexCenter, flexAll, hRule
+@docs centered, flexLeft, flexRight, flexCenter, flexAll, hrule
 
 -}
 
@@ -27,6 +29,8 @@ import Diagrams.Pad exposing (..)
 
 type alias Width = Float
 
+{-| A diagram which can vary its width -- e.g. a spacer or a video
+player timeline. -}
 type FlexDiagram t a
     = Block (Diagram t a) Width
     | Expando { minWidth : Width
@@ -37,6 +41,9 @@ type alias LayoutRow t a = List (FlexDiagram t a)
 
 -- layout
 
+{-| Given a list of rows of where some of the diagrams in each row
+can have variable width, stack the rows vertically and decide the width of each
+diagram such that the width of the whole thing is minimized. -}
 layout : List (LayoutRow t a) -> Diagram t a
 layout rows = let decidedWidth = L.map rowMinWidth rows |> L.maximum |> M.withDefault 0
               in vcatA LeftA <| L.map (renderRow decidedWidth) rows
@@ -64,36 +71,50 @@ renderRow decidedWidth row =
     in hcat <| L.map renderFD row
 
 -- primitives
+
+{-| An invisible spacer which will expand horizontally as far as possible. -}
 spring : FlexDiagram t a
 spring = Expando { minWidth = 0, render = hspace }
 
+{-| A fixed-size diagram. -}
 block : Diagram t a -> FlexDiagram t a
 block dia = Block dia (width dia)
 
+{-| A diagram which has a minimum width, but can be drawn at any width >= that. -}
 expando : Width -> (Width -> Diagram t a) -> FlexDiagram t a
 expando w f = Expando { minWidth = w, render = f }
 
+{-| A fixed-width spacer. -}
 strut : Width -> FlexDiagram t a
 strut w = Block (hspace w) w
 
 -- helpers
 
+{-| A row in which the given diagram will stay centered. -}
 centered : Diagram t a -> LayoutRow t a
 centered dia = [spring, block dia, spring]
 
+{-| A row in which the given diagram will stay glued to the right:
+the left side is flexible. -}
 flexLeft : Diagram t a -> LayoutRow t a
 flexLeft dia = [spring, block dia]
 
+{-| A row in which the given diagram will stay glued to the left:
+the right side is flexible. -}
 flexRight : Diagram t a -> LayoutRow t a
 flexRight dia = [block dia, spring]
 
+{-| A row in which the given diagrams will stay glued to the left and right:
+the center is flexible. -}
 flexCenter : Diagram t a -> Diagram t a -> LayoutRow t a
 flexCenter ldia rdia = [block ldia, spring, block rdia]
 
+{-| A row containing a diagram which fills the full width of the row. -}
 flexAll : (Width -> Diagram t a) -> LayoutRow t a
 flexAll f = [expando 0 f]
 
 -- TODO: this should be camel case -- have to change hspace, etc too
-{-| Horizontal ruling, with given vertical padding on top and bottom. -}
+{-| Horizontal rule, with given vertical padding on top and bottom.
+(Kind of like the `<hr/>` element in HTML) -}
 hrule : C.LineStyle -> Float -> LayoutRow t a
 hrule ls vPadding = flexAll (\w -> padSpecific vPadding vPadding 0 0 <| hline w ls)

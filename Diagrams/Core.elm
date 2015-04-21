@@ -25,11 +25,16 @@ The library is based on the excellent [Diagrams][hd] library for Haskell, which
 has a nice [visual tutorial][hd-tut]. Things are named slightly differently, and this
 version is missing a lot of features and generality.
 
+With v5.0 the functionality has been split into many modules to make it more manageable;
+this [graph of their dependencies][mod-graph] may be helpful. Not sure if a `Prelude` module
+which exports everything is a good idea.
+
  [hd]: http://projects.haskell.org/diagrams/
  [hd-tut]: http://projects.haskell.org/diagrams/doc/quickstart.html
+ [mod-graph]: https://docs.google.com/drawings/d/1_321XRPhfP8t0u747QhNwR_PiibVHroxcioLq-vHdq8/edit
 
 # Basic Types
-@docs Diagram, PathType, PickPath, PickPathElem
+@docs Diagram, PathType, Transform
 
 # Constructors
 @docs circle, rect, path, polygon, text, spacer, transform, group, tag, tagWithActions, ngon, eqTriangle
@@ -108,7 +113,7 @@ transform : Transform -> Diagram t a -> Diagram t a
 transform = TransformD
 
 {-| Group a list of Diagrams in to one. Elements will be stacked with local origins
-on top of one another. This is the same as `zcat`. -}
+on top of one another. This is the same as `zcat`. The first diagram in the list is on top. -}
 group : List (Diagram t a) -> Diagram t a
 group = Group
 
@@ -178,7 +183,7 @@ render d = let handleFS fs pathType shape =
                 TransformD (Scale s) dia -> C.scale s <| render dia
                 TransformD (Rotate r) dia -> C.rotate r <| render dia
                 TransformD (Translate x y) dia -> C.move (x, y) <| render dia
-                Text str ts te -> C.toForm te
+                Text str ts te -> C.text <| T.style ts <| T.fromString str
                 Path path fs ty -> handleFS fs ty path
                 Rect w h fs -> handleFS fs ClosedP <| C.rect w h
                 Circle r fs -> handleFS fs ClosedP <| C.circle r

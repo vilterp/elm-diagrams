@@ -18,7 +18,7 @@ showOrigin : Diagram t a -> Diagram t a
 showOrigin d = let originPoint = circle 3 <| justFill <| Solid Color.red
                in originPoint `atop` d
 
-{-| Draw a red dot box around a diagram. Implemented in terms of `envelope`. -}
+{-| Draw a red dot box around a diagram. -}
 showBBox : Diagram t a -> Diagram t a
 showBBox d = let dfl = C.defaultLine
                  style = { dfl | width <- 2

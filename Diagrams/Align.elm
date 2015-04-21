@@ -4,8 +4,11 @@ module Diagrams.Align where
 # Relative Positioning
 @docs beside, above, atop, hcat, vcat, zcat
 
-# Alignment
-@docs alignLeft, alignRight, alignTop, alignBottom, alignCenter, HAlign, VAlign, hAlign, vAlign, hcatA, vcatA
+# Moving the origin
+@docs alignLeft, alignRight, alignTop, alignBottom, alignCenter
+
+# Aligning lists of diagrams
+@docs HAlign, VAlign, hAlign, vAlign, hcatA, vcatA
 -}
 
 import List as L

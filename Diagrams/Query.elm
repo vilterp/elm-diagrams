@@ -2,7 +2,11 @@ module Diagrams.Query where
 
 {-| Retreive information about laid-out diagrams.
 
-@docs pick, getCoords
+# Pick
+@docs pick, PickTree
+
+# Get Coordinates
+@docs getCoords, TagPath
 -}
 
 import List as L
@@ -14,23 +18,25 @@ import Diagrams.Geom exposing (..)
 import Diagrams.Actions exposing (..)
 import Diagrams.FillStroke exposing (..)
 
--- TODO: new docs
-{-| Given a Diagram t and a point (e.g. of the mouse), return the list of Tag nodes between
-the diagram root and the leaf node the point is within (a primitive visual element), along
-with the point's offset from the local origin at each level. If the mouse is not over a leaf
-node, return `[]`.
+{-| Result of `pick`: tree representing the subtree of the Diagram the
+given point is over.
 
-Returns a `PickPath`, which is a list of (Tag, Coordinates) pairs ordered
-from the leaf node to the root. The second element in each pair is the given
-point in the tag's coordinate space -- the point which, if transformed by every
-Transform node from that tag node to the root,  would be the point initially given to `pick`.
+- Leaf nodes mean the mouse is over a primitive shape (rect, text, etc)
+- Tag nodes mean the child of this pickTree is under that tag.
+- Layers mean that the mouse is over two overlapping diagrams. The
+  pick trees for these diagrams are given in a list starting with the
+  one on top. -}
+type PickTree t a
+    = PickLayers (List (PickTree t a))
+    | PickLeaf
+    | PickTag { tag : t
+              , offset : Point
+              , actionSet : ActionSet t a
+              , child : PickTree t a
+              }
 
-    pick myDiagram myPoint
-    => [(<tag nearest myDiagram leaf>, <myPoint in leaf coordinate space>),
-       , ...
-       , (<tag nearest myDiagram root>, <myPoint in root coordinate space>)]
-
--}
+{-| Given a diagram and a point (e.g. of the mouse), return a `PickTree`, which represents
+what subtree of the diagram that point is currently over. -}
 pick : Diagram t a -> Point -> Maybe (PickTree t a)
 pick diag point =
     let handleBox w h borderWidth =
@@ -67,18 +73,22 @@ firstNonempty l = case l of
 type alias TagPath a = List a
 
 {-| Try to find a subDiagram t at the given tag path. If it is found,
-return the coordinates of its origin relative to the origin of this diagram. If
-It isn't found, return `Nothing`. -}
+return `Just` the coordinates of its origin relative to the origin of this diagram.
+If it isn't found, return `Nothing`. -}
 getCoords : Diagram t a -> TagPath t -> Maybe Point
-getCoords dia path = getCoords' dia path (0, 0)
-
-getCoords' : Diagram t a -> TagPath t -> Point -> Maybe Point
-getCoords' diag path start = 
-    case path of
-      [] -> Just start
-      (x::xs) -> 
-        case diag of
-          Tag t _ dia -> if x == t then getCoords' dia xs start else Nothing
-          Group dias -> M.oneOf <| L.map (\d -> getCoords' d path start) dias
-          TransformD trans dia -> getCoords' dia path (applyTrans trans start)
-          _ -> Nothing
+getCoords dia path =
+    let recurse diag path start = 
+          case path of
+            [] -> Just start
+            (x::xs) -> 
+              case diag of
+                Tag t _ dia ->
+                    if x == t
+                    then recurse dia xs start
+                    else Nothing
+                Group dias ->
+                    M.oneOf <| L.map (\d -> recurse d path start) dias
+                TransformD trans dia ->
+                    recurse dia path (applyTrans trans start)
+                _ -> Nothing
+    in recurse dia path (0, 0)

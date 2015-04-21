@@ -1,8 +1,18 @@
 module Diagrams.Actions where
 
-{-| A type for attaching mouse actions to diagrams.
+{-| ActionSets can be attached to diagrams with `Core.tagWithActions`, and used
+with module `Diagrams.Interact`. Build them with e.g.
+    
+    { emptyActionSet | click <- Just <| keepBubbling <| \(MouseEvent evt) -> SomeAction evt.offset }
 
-@docs ActionSet, EventToAction, emptyActionSet, collageMousePos
+(Will probably think of helpers to make this more concise later). See the `Diagrams.Interact` docs
+and the GraphEditor example for more info on how to use actions, including how bubbling works.
+
+# Types
+@docs ActionSet, MouseEvent, PickPath, PickPathElem, EventToAction
+
+# Helpers
+@docs emptyActionSet, keepBubbling, stopBubbling, mousePosAtPath
 -}
 
 import List as L
@@ -13,18 +23,6 @@ import Diagrams.Geom exposing (..)
 -- TODO: tagging function easier than `tagWithAction tag { emptyActionSet | click <- Just ... } dia`?
 -- like `clickable tag func dia` or something
 -- or list of attributes like html
-
--- TODO: odd place for these to live
-{-| (Tag, Coordinates) pairs from bottom of tree to top; result of
-calling `pick` (see below). -}
-type PickTree t a
-    = PickLayers (List (PickTree t a))
-    | PickLeaf
-    | PickTag { tag : t
-              , offset : Point
-              , actionSet : ActionSet t a
-              , child : PickTree t a
-              }
 
 type alias PickPath t = List (PickPathElem t)
 type alias PickPathElem t = { tag : t, offset : Point }

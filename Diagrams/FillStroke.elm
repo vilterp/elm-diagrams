@@ -1,7 +1,7 @@
 module Diagrams.FillStroke where
 
 {-|
-@docs FillStroke, justFill, justStroke, fillAndStroke, invisible, justSolidFill, withAlpha
+@docs FillStroke, justFill, justStroke, fillAndStroke, invisible, justSolidFill
 -}
 
 import Color

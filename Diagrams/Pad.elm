@@ -1,6 +1,7 @@
 module Diagrams.Pad where
 
-{-|
+{-| Surround diagrams with padding.
+
 @docs padSpecific, pad, background, outlineBox
 -}
 
@@ -29,7 +30,7 @@ padSpecific u d l r dia =
         padder = move (offsetDims.offset) <| spacer (offsetDims.dims.width) (offsetDims.dims.height)
     in zcat [dia, padder]
 
-{-| Like `paddSpecific`, but with same spacing on all sides. -}
+{-| Return given diagram surrounded by given padding on all sides. -}
 pad : Float -> Diagram t a -> Diagram t a
 pad pd dia = padSpecific pd pd pd pd dia
 

@@ -35,18 +35,15 @@ defLine = C.defaultLine
 
 -- actions
 
--- TODO: this is fucking terrible
+-- TODO: this is pretty verbose
 posNodeActions nodeId dragState =
     case dragState of
       Nothing -> { emptyActionSet | mouseDown <- Just <| stopBubbling <|
                                       \(MouseEvent evt) -> DragNodeStart { nodeId = nodeId, offset = evt.offset } }
       _ -> emptyActionSet
 
--- TODO: click isn't working here
-nodeXOutActions nodeId dragState =
-    case dragState of
-      Nothing -> { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveNode nodeId }
-      _ -> emptyActionSet
+-- BUG: click isn't working here
+nodeXOutActions nodeId = { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveNode nodeId }
 
 edgeXOutActions edge = { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveEdge edge }
 
@@ -86,7 +83,7 @@ viewNode : Node -> NodeId -> Maybe DraggingState -> Diagram Tag Action
 viewNode node nodeId dState =
    let -- top row
        title = text node.title titleStyle
-       xOut = tagWithActions XOut (nodeXOutActions nodeId dState) <| xGlyph
+       xOut = tagWithActions XOut (nodeXOutActions nodeId) <| xGlyph
        titleRow = flexCenter title xOut
        -- ports
        portCirc = circle 7 (justFill <| Solid Color.yellow)
