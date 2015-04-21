@@ -1,13 +1,14 @@
 module Diagrams.FillStroke where
 
-{-|
-@docs FillStroke, justFill, justStroke, fillAndStroke, invisible, justSolidFill
+{-| Construct fills and strokes for diagrams.
+
+@docs FillStroke, FillStyle justFill, justStroke, fillAndStroke, invisible, justSolidFill
 -}
 
 import Color
 import Graphics.Collage as C
 
--- literally a copy of Graphics.Collage.FillStyle, cuz it's no longer exported
+{-| literally a copy of Graphics.Collage.FillStyle, cuz it's no longer exported -}
 type FillStyle
     = Solid Color.Color
     | Texture String

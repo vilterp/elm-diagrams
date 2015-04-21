@@ -14,7 +14,7 @@ import Diagrams.FillStroke exposing (..)
 
 type Direction = Up | Down | Left | Right
 
-{-| Given a Diagram t and a Direction, return the distance in that direction from the origin
+{-| Given a diagram and a Direction, return the distance in that direction from the origin
 to the closest line perpendicular to that direction which doesn't intersect the content of
 the diagram. See the [Haskell diagrams docs][hd] for a visual explanation.
 

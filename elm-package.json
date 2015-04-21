@@ -1,5 +1,5 @@
 {
-    "version": "4.1.1",
+    "version": "5.0.0",
     "summary": "A library for creating diagrams, inspired by the Diagrams library for Haskell",
     "repository": "https://github.com/vilterp/elm-diagrams.git",
     "license": "BSD3",
@@ -21,8 +21,8 @@
         "Diagrams.Query",
         "Diagrams.Wiring"
     ],
-    "elm-version": "0.15.0 <= v < 0.16.0",
     "dependencies": {
         "elm-lang/core": "2.0.0 <= v < 3.0.0"
-    }
+    },
+    "elm-version": "0.15.0 <= v < 0.16.0"
 }

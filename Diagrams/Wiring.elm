@@ -19,8 +19,8 @@ import Graphics.Collage as C
 
 import Diagrams.Geom exposing (..)
 
-{-| Where offset is difference between top left of screen and top left of collage,
-increasing right and down. -}
+{-| Position of a rectangle on the screen in which a diagram will be drawn (as a `Graphics.Collage`).
+Offset is difference between top left of screen and top left of collage, increasing right and down. -}
 type alias CollageLocation = OffsetDimsBox
 
 type alias PrimMouseEvent = (PrimMouseEvtType, Point)
@@ -32,12 +32,10 @@ type PrimMouseEvtType = MouseUpEvt
 {-| Given window size, where on screen and how big is your collage? -}
 type alias CollageLocFunc = Dims -> CollageLocation
 
--- TODO: clip events that aren't within the collage loc
-
+-- BUG: `pointInside` sees offset as middle of box; `Wiring` uses it as top left (#37)
 {-| Given collage location function, return stream of (collage location, mouse event)
 pairs, where mouse coordinates are relative to the center of the collage at its present
 location, and increasing up and to the right. -}
--- fuckin' BUG: `pointInside` sees offset as middle of box; everything else sees it as top left. fuck.
 makeUpdateStream : CollageLocFunc -> Signal (CollageLocation, PrimMouseEvent)
 makeUpdateStream clf =
     let collageLocs = S.map clf floatWindowDims
@@ -47,6 +45,8 @@ makeUpdateStream clf =
                 ({dims={width=0, height=0}, offset=(0,0)},(MouseUpEvt,(0,0)))
                 tups
 
+{-| Given a signal of collage locations, return a signal of mouse events offset from the
+center of that location. -}
 mouseEvents : Signal CollageLocation -> Signal PrimMouseEvent
 mouseEvents loc =
     let upDown = S.map (\down -> if down then MouseDownEvt else MouseUpEvt) Mouse.isDown

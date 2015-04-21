@@ -46,6 +46,7 @@ type alias ActionSet t a =
     , mouseUp : Maybe (EventToAction t a)
     }
 
+emptyActionSet : ActionSet t a
 emptyActionSet =
     { click = Nothing
     , mouseEnter = Nothing

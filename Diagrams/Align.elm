@@ -5,10 +5,10 @@ module Diagrams.Align where
 @docs beside, above, atop, hcat, vcat, zcat
 
 # Moving the origin
-@docs alignLeft, alignRight, alignTop, alignBottom, alignCenter
+@docs alignLeft, alignRight, alignTop, alignBottom, alignCenter, hAlign, vAlign
 
 # Aligning lists of diagrams
-@docs HAlign, VAlign, hAlign, vAlign, hcatA, vcatA
+@docs HAlign, VAlign, hcatA, vcatA
 -}
 
 import List as L
@@ -92,18 +92,24 @@ alignCenter dia = let left = envelope Left dia
 type HAlign = LeftA | RightA
 type VAlign = TopA | BottomA
 
+{-| Choose alignLeft or alignRight based on the given `HAlign`. -}
 hAlign : HAlign -> Diagram t a -> Diagram t a
 hAlign ha dia = case ha of
                   LeftA -> alignLeft dia
                   RightA -> alignRight dia
 
+{-| Choose alignTop or alignBottom based on the given `VAlign`. -}
 vAlign : VAlign -> Diagram t a -> Diagram t a
 vAlign va dia = case va of
                   TopA -> alignTop dia
                   BottomA -> alignBottom dia
 
+{-| Align a list of diagrams along a horizontal line according to the
+given `VAlign`. -}
 hcatA : VAlign -> List (Diagram t a) -> Diagram t a
 hcatA va dias = hcat <| L.map (vAlign va) dias
 
+{-| Align a list of diagrams along a vertical line according to the
+given `HAlign`. -}
 vcatA : HAlign -> List (Diagram t a) -> Diagram t a
 vcatA ha dias = vcat <| L.map (hAlign ha) dias

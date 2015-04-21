@@ -1,6 +1,6 @@
 module Diagrams.Interact where
 
-{-| Abstractions for making diagrams which change as a function of the mouse.
+{-| An abstraction for making diagrams which change as a function of the mouse.
 
 Attach `ActionSet`s (see `Diagrams.Actions`) to diagrams with `Core.tagWithActions`;
 then use `interactFold` or `update` to process mouse interaction. Mouse state (what 
@@ -59,7 +59,7 @@ type alias InteractionState m t a =
 type alias RenderFunc m t a = m -> Diagram t a
 type alias UpdateFunc m a = a -> m -> m
 
-{-| Top-level interface to this module. Given
+{-| One top-level interface to this module. Given
 - how to update the state (type `m`) given an action (type `a`),
 - how to render a diagram given the state,
 - and how to compute the location of the collage on screen from the window dimensions,
@@ -67,7 +67,7 @@ Return a signal of diagrams.
 
 Since it returns a signal, you should only use it if this is the top-level interaction of your app; i.e.
 you aren't making a component that's nestable inside others as in the Elm Architecture. To make a component,
-use `makeFoldUpdate` to build an update function.
+use `update` to build an update function.
 -}
 interactFold : UpdateFunc m a -> RenderFunc m t a -> CollageLocFunc -> m -> Signal (Diagram t a)
 interactFold updateF renderF collageLocF initModel =
@@ -76,6 +76,8 @@ interactFold updateF renderF collageLocF initModel =
                          (makeUpdateStream collageLocF)
     in S.map .diagram states
 
+{-| Function to update the interaction state, given an event (probably from `Diagrams.Wiring`'s `makeUpdateStream`)
+-- the other top-level interface. -}
 update : (CollageLocation, PrimMouseEvent) -> InteractionState m t a -> InteractionState m t a
 update (loc, evt) intState =
     let (newMS, actions) = processMouseEvent intState.diagram intState.mouseState evt
