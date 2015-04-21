@@ -5,17 +5,17 @@ module Diagrams.Debug where
 @docs showBBox, showOrigin
 -}
 
-import Graphics.Collage as C
 import Color
+import Graphics.Collage as C
 
-import Diagrams.Core (..)
-import Diagrams.FillStroke (..)
-import Diagrams.Align (..)
-import Diagrams.Pad (..)
+import Diagrams.Core exposing (..)
+import Diagrams.FillStroke exposing (..)
+import Diagrams.Align exposing (..)
+import Diagrams.Pad exposing (..)
 
 {-| Draw a red dot at `(0, 0)` in the diagram's local vector space. -}
 showOrigin : Diagram t a -> Diagram t a
-showOrigin d = let originPoint = circle 3 <| justFill <| C.Solid Color.red
+showOrigin d = let originPoint = circle 3 <| justFill <| Solid Color.red
                in originPoint `atop` d
 
 {-| Draw a red dot box around a diagram. Implemented in terms of `envelope`. -}

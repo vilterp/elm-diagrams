@@ -5,21 +5,22 @@ import Graphics.Collage as C
 import Color
 import List as L
 import Dict as D
+import Maybe as M
 
 import Debug
 
-import Diagrams.Core (..)
-import Diagrams.Align (..)
-import Diagrams.Pad (..)
-import Diagrams.Geom (..)
-import Diagrams.Bezier (..)
-import Diagrams.Layout (..)
-import Diagrams.FillStroke (..)
-import Diagrams.Actions (..)
-import Diagrams.Query (..)
-import Diagrams.Debug (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Align exposing (..)
+import Diagrams.Pad exposing (..)
+import Diagrams.Geom exposing (..)
+import Diagrams.Bezier exposing (..)
+import Diagrams.Layout exposing (..)
+import Diagrams.FillStroke exposing (..)
+import Diagrams.Actions exposing (..)
+import Diagrams.Query exposing (..)
+import Diagrams.Debug exposing (..)
 
-import GraphEditor.Model (..)
+import GraphEditor.Model exposing (..)
 
 -- Styles
 
@@ -41,12 +42,13 @@ posNodeActions nodeId dragState =
                                       \(MouseEvent evt) -> DragNodeStart { nodeId = nodeId, offset = evt.offset } }
       _ -> emptyActionSet
 
+-- TODO: click isn't working here
 nodeXOutActions nodeId dragState =
     case dragState of
       Nothing -> { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveNode nodeId }
       _ -> emptyActionSet
 
-edgeXOutActions edge = { emptyActionSet | click <- Just <| stopBubbling <| always <| RemoveEdge edge }
+edgeXOutActions edge = { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveEdge edge }
 
 canvasActions dragState =
     let dragMove = { emptyActionSet | mouseMove <- Just <| stopBubbling <| \(MouseEvent evt) -> DragMove evt.offset
@@ -57,7 +59,9 @@ canvasActions dragState =
 
 outPortActions : PortId -> ActionSet Tag Action
 outPortActions portId = { emptyActionSet | mouseDown <- Just <| stopBubbling <|
-                                              \evt -> DragEdgeStart { fromPort = portId, endPos = collageMousePos evt } }
+                                              \evt -> DragEdgeStart { fromPort = portId
+                                                                    , endPos = M.withDefault (0,0) <| mousePosAtPath evt [Canvas]
+                                                                    } }
 
 inPortActions : PortId -> Maybe DraggingState -> ActionSet Tag Action
 inPortActions portId dragState =
@@ -71,7 +75,7 @@ inPortActions portId dragState =
 xGlyph = let smallLine = vline 11 { defLine | color <- Color.white, width <- 2 }
              rotLeft = rotate (-pi/4) smallLine
              rotRight = rotate (pi/4) smallLine
-             bg = circle 7 <| justFill <| C.Solid Color.red
+             bg = circle 7 <| justFill <| Solid Color.red
          in zcat [rotLeft, rotRight, bg]
 
 -- TODO: can cache diagram in PosNode to improve performance
@@ -85,7 +89,7 @@ viewNode node nodeId dState =
        xOut = tagWithActions XOut (nodeXOutActions nodeId dState) <| xGlyph
        titleRow = flexCenter title xOut
        -- ports
-       portCirc = circle 7 (justFill <| C.Solid Color.yellow)
+       portCirc = circle 7 (justFill <| Solid Color.yellow)
        label lbl = text lbl T.defaultStyle
        -- in ports
        inSlot lbl = flexRight <| hcat [tagWithActions (InPortT lbl) (inPortActions (nodeId, lbl) dState) <| portCirc, hspace 5, label lbl]
@@ -95,7 +99,7 @@ viewNode node nodeId dState =
        outSlots = L.map outSlot node.outPorts
        -- pad
        padded = padSpecific 5 5 7 7 <| layout <| [titleRow] ++ inSlots ++ outSlots
-   in background (fillAndStroke (C.Solid Color.orange) defaultStroke) padded
+   in background (fillAndStroke (Solid Color.orange) defaultStroke) padded
 
 viewEdge : Diagram Tag Action -> Edge -> Diagram Tag Action
 viewEdge nodesDia edg =

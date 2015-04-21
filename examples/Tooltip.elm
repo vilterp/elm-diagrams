@@ -1,12 +1,12 @@
 module Tooltip where
 
-import Diagrams.Core (..)
-import Diagrams.Align (..)
-import Diagrams.Pad (..)
-import Diagrams.FillStroke (..)
-import Diagrams.FullWindow (..)
-import Diagrams.Envelope (..)
-import Diagrams.Debug (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Align exposing (..)
+import Diagrams.Pad exposing (..)
+import Diagrams.FillStroke exposing (..)
+import Diagrams.FullWindow exposing (..)
+import Diagrams.Envelope exposing (..)
+import Diagrams.Debug exposing (..)
 
 import Color
 import Text as T

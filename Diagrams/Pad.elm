@@ -9,11 +9,11 @@ module Diagrams.Pad where
 
 import Graphics.Collage as C
 
-import Diagrams.Core (..)
-import Diagrams.Align (..)
-import Diagrams.Envelope (..)
-import Diagrams.Geom (..)
-import Diagrams.FillStroke (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Align exposing (..)
+import Diagrams.Envelope exposing (..)
+import Diagrams.Geom exposing (..)
+import Diagrams.FillStroke exposing (..)
 
 -- TODO: better name...?
 {-| Given four numbers up, down, left, and right, put an invisible spacer

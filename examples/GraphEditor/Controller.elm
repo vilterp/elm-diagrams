@@ -2,11 +2,11 @@ module GraphEditor.Controller where
 
 import Debug
 
-import Diagrams.Interact (..)
-import Diagrams.Geom (..)
+import Diagrams.Interact exposing (..)
+import Diagrams.Geom exposing (..)
 
-import GraphEditor.Model (..)
-import GraphEditor.View (..)
+import GraphEditor.Model exposing (..)
+import GraphEditor.View exposing (..)
 
 -- the view has to import these types, but we have to import the view...
 

@@ -8,7 +8,7 @@ module Diagrams.Actions where
 import List as L
 import Debug
 
-import Diagrams.Geom (..)
+import Diagrams.Geom exposing (..)
 
 -- TODO: tagging function easier than `tagWithAction tag { emptyActionSet | click <- Just ... } dia`?
 -- like `clickable tag func dia` or something

@@ -4,12 +4,12 @@ import Dict as D
 import Signal
 import Window
 
-import Diagrams.Core (Diagram)
+import Diagrams.Core exposing (Diagram)
 import Diagrams.Wiring as DW
 import Diagrams.FullWindow as DFW
 import Diagrams.Interact as DI
 
-import GraphEditor.Model (..)
+import GraphEditor.Model exposing (..)
 import GraphEditor.Controller as Cont
 
 -- DATA

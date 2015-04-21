@@ -3,10 +3,10 @@ module LayoutTest where
 import Color
 import List as L
 
-import Diagrams.Core (..)
-import Diagrams.Layout (..)
-import Diagrams.FillStroke (..)
-import Diagrams.FullWindow (..)
+import Diagrams.Core exposing (..)
+import Diagrams.Layout exposing (..)
+import Diagrams.FillStroke exposing (..)
+import Diagrams.FullWindow exposing (..)
 
 orangeFill = justSolidFill Color.orange
 blueFill = justSolidFill Color.blue
