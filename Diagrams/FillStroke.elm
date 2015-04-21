@@ -2,7 +2,7 @@ module Diagrams.FillStroke where
 
 {-| Construct fills and strokes for diagrams.
 
-@docs FillStroke, FillStyle justFill, justStroke, fillAndStroke, invisible, justSolidFill
+@docs FillStroke, FillStyle justFill, justStroke, fillAndStroke, invisible, justSolidFill, withAlpha
 -}
 
 import Color
@@ -42,3 +42,8 @@ halfStrokeWidth : FillStroke -> Float
 halfStrokeWidth fs = case fs.stroke of
                       Just ls -> ls.width/2
                       Nothing -> 0
+
+withAlpha : Float -> Color.Color -> Color.Color
+withAlpha newAlpha color =
+    let {red, green, blue, alpha} = Color.toRgb color
+    in Color.rgba red green blue newAlpha
