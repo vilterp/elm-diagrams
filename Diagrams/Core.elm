@@ -101,7 +101,7 @@ polygon points fs = Path points fs ClosedP
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
 text : String -> T.Style -> Diagram t a
 text txt style = let text = T.fromString txt |> T.style style
-                     height = (M.withDefault 16 <| style.height) * 1.1
+                     height = (M.withDefault 16 <| style.height) * 1.1 -- HACK
                      width = DMT.textWidth text
                  in Text text { width=width, height=height }
 

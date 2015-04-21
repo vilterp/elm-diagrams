@@ -26,6 +26,7 @@ Elm.Native.Diagrams.MeasureText.make = function(localRuntime) {
 		].join(' ');
 	}
 
+	// context stuff is from core/Graphics/Collage.js
 	var defaultContext = {
 		'font-style': 'normal',
 		'font-variant': 'normal',
