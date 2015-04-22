@@ -36,20 +36,20 @@ Elm.Native.Diagrams.MeasureText.make = function(localRuntime) {
 		'color': 'black'
 	};
 
-	function mergeContexts(a, b)
+	function mergeContexts(a, default_font)
 	{
 		var result = {};
-		result['font-style'] = a['font-style'] || b['font-style'];
-		result['font-variant'] = a['font-variant'] || b['font-variant'];
-		result['font-weight'] = a['font-weight'] || b['font-weight'];
-		result['font-size'] = a['font-size'] || b['font-size'];
-		result['font-family'] = a['font-family'] || b['font-family'];
+		result['font-style'] = a['font-style'] || default_font['font-style'];
+		result['font-variant'] = a['font-variant'] || default_font['font-variant'];
+		result['font-weight'] = a['font-weight'] || default_font['font-weight'];
+		result['font-size'] = a['font-size'] || default_font['font-size'];
+		result['font-family'] = a['font-family'] || default_font['font-family'];
 		return result;
 	}
 
 	return localRuntime.Native.Diagrams.MeasureText.values = {
 		textWidth : function(txt) {
-			canvasCtx.font = toFont(mergeContexts(defaultContext, txt._0));
+			canvasCtx.font = toFont(mergeContexts(txt._0, defaultContext));
 			return canvasCtx.measureText(txt._1._0).width;
 		},
 	};

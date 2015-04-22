@@ -4,6 +4,7 @@ import Diagrams.Core exposing (..)
 import Diagrams.Align exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.FullWindow exposing (..)
+import Diagrams.Debug exposing (..)
 import Window
 import Mouse
 import Signal as S
