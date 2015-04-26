@@ -142,6 +142,7 @@ ngon n r fs =
 
 -- basic transformations
 
+{-| Rotate the given diagram counterclockwise. Angle specified in radians. -}
 rotate : Float -> Diagram t a -> Diagram t a
 rotate r d = TransformD (Rotate r) d
 
