@@ -36,7 +36,7 @@ type MouseEvent t a = MouseEvent { offset : Point
 
 {-| Given an event, return (a) an action resulting from that event, and (b) whether to stop this
 mouse event from "bubbling up" to handlers higher up the tree. -}
-type alias EventToAction t a = MouseEvent t a -> (a, Bool)
+type alias EventToAction t a = MouseEvent t a -> (List a, Bool)
 type alias ActionSet t a =
     { click : Maybe (EventToAction t a)
     , mouseEnter : Maybe (EventToAction t a)
@@ -56,10 +56,10 @@ emptyActionSet =
     , mouseUp = Nothing
     }
 
-keepBubbling : (MouseEvent t a -> a) -> EventToAction t a
+keepBubbling : (MouseEvent t a -> List a) -> EventToAction t a
 keepBubbling f = \evt -> (f evt, False)
 
-stopBubbling : (MouseEvent t a -> a) -> EventToAction t a
+stopBubbling : (MouseEvent t a -> List a) -> EventToAction t a
 stopBubbling f = \evt -> (f evt, True)
 
 -- why is this not in the stdlib?

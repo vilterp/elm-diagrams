@@ -112,43 +112,47 @@ updateModel upFun state =
 new `MouseDiagram` with list of actions triggered by this mouse event. -}
 processMouseEvent : Diagram t a -> MouseState t a -> PrimMouseEvent -> (MouseState t a, List a)
 processMouseEvent diagram mouseState (evt, mousePos) =
-    let overTree = Debug.watch "OT" <| pick diagram mousePos -- need to pick every time because actions may have changed
+    let overTree = pick diagram mousePos -- need to pick every time because actions may have changed
         overPickedTags = preorderTraverse overTree
         overPaths = tagPaths overPickedTags
         oldOverPickedTags = mouseState.overPickedTags
         oldOverPaths = tagPaths oldOverPickedTags
     in case evt of
-         MouseMoveEvt -> let enters = L.filterMap (getHandler .mouseEnter) <|
-                                L.filter (\pTag -> not <| L.member (tagPath pTag) oldOverPaths) overPickedTags
-                             leaves = L.filterMap (getHandler .mouseLeave) <|
-                                L.filter (\pTag -> not <| L.member (tagPath pTag) overPaths) oldOverPickedTags
-                             moves = L.filterMap (getHandler .mouseMove) <|
-                                L.filter (\pTag -> L.member (tagPath pTag) oldOverPaths) overPickedTags
-                         in ( { mouseState | overPickedTags <- overPickedTags }
-                            , applyActions <| enters ++ leaves ++ moves
-                            )
-         MouseDownEvt -> ( { mouseState | isDown <- True
-                                        , overPathsOnMouseDown <- Just overPaths
-                                        , overPickedTags <- overPickedTags }
-                         , applyActions <| L.filterMap (getHandler .mouseDown) overPickedTags
-                         )
-         MouseUpEvt -> let mouseUps = L.filterMap (getHandler .mouseUp) overPickedTags
-                           clicks = if overPaths == M.withDefault [] mouseState.overPathsOnMouseDown
-                                    then L.filterMap (getHandler .click) overPickedTags
-                                    else []
-                       in ( { mouseState | isDown <- False
-                                         , overPathsOnMouseDown <- Nothing
-                                         , overPickedTags <- overPickedTags }
-                          , applyActions <| clicks ++ mouseUps
-                          )
+        MouseMoveEvt ->
+            let enters = L.filterMap (getHandler .mouseEnter) <|
+                   L.filter (\pTag -> not <| L.member (tagPath pTag) oldOverPaths) overPickedTags
+                leaves = L.filterMap (getHandler .mouseLeave) <|
+                   L.filter (\pTag -> not <| L.member (tagPath pTag) overPaths) oldOverPickedTags
+                moves = L.filterMap (getHandler .mouseMove) <|
+                   L.filter (\pTag -> L.member (tagPath pTag) oldOverPaths) overPickedTags
+            in ( { mouseState | overPickedTags <- overPickedTags }
+               , applyActions <| enters ++ leaves ++ moves
+               )
+        MouseDownEvt ->
+            ( { mouseState | isDown <- True
+                           , overPathsOnMouseDown <- Just overPaths
+                           , overPickedTags <- overPickedTags }
+            , applyActions <| L.filterMap (getHandler .mouseDown) overPickedTags
+            )
+        MouseUpEvt ->
+            let mouseUps = L.filterMap (getHandler .mouseUp) overPickedTags
+                clicks = if overPaths == M.withDefault [] mouseState.overPathsOnMouseDown
+                         then L.filterMap (getHandler .click) overPickedTags
+                         else []
+            in ( { mouseState | isDown <- False
+                              , overPathsOnMouseDown <- Nothing
+                              , overPickedTags <- overPickedTags }
+               , applyActions <| clicks ++ mouseUps
+               )
 
 -- helpers for processMouseEvent
 
-type alias PickedTag t a = { actionSet : ActionSet t a
-                           , offset : Point
-                           , tag : t
-                           , path : PickPath t
-                           }
+type alias PickedTag t a =
+    { actionSet : ActionSet t a
+    , offset : Point
+    , tag : t
+    , path : PickPath t
+    }
 
 tagPaths : List (PickedTag t a) -> List (List t)
 tagPaths pTags =
@@ -180,8 +184,9 @@ getHandler getMember pTag =
 
 applyActions : List (PickedTag t a, EventToAction t a) -> List a
 applyActions pickedTags = 
-    mapWithEarlyStop (\(pTag, e2a) -> e2a <| MouseEvent { offset = pTag.offset, path = pTag.path })
-                     pickedTags
+    pickedTags
+      |> mapWithEarlyStop (\(pTag, e2a) -> e2a <| MouseEvent { offset = pTag.offset, path = pTag.path })
+      |> L.concat
 
 {-| Like map, but stops if the second element of the function result is True. -}
 mapWithEarlyStop : (a -> (b, Bool)) -> List a -> List b
