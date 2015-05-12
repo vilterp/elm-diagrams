@@ -12,8 +12,18 @@ module Diagrams.Geom where
 @docs BBox, OffsetDimsBox, Dims, bbox2offsetDims, pointInside
 
 # Other
-@docs lerp
+@docs lerp, Direction, directionAngle
 -}
+
+type Direction = Up | Down | Left | Right
+
+directionAngle : Direction -> Float
+directionAngle dir =
+    case dir of
+      Right -> 0
+      Up -> (pi)/2
+      Left -> pi
+      Down -> (3*pi)/2
 
 -- Transforms
 
