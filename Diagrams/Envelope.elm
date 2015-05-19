@@ -29,7 +29,7 @@ envelope dir dia =
                        Left -> w/2
                        Right -> w/2
           in base + borderWidth
-    in case Debug.log "dia" dia of
+    in case dia of
         Tag _ _ dia' ->
             envelope dir dia'
         Group dias ->
