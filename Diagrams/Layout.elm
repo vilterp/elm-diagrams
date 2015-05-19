@@ -45,13 +45,15 @@ type alias LayoutRow t a = List (FlexDiagram t a)
 can have variable width, stack the rows vertically and decide the width of each
 diagram such that the width of the whole thing is minimized. -}
 layout : List (LayoutRow t a) -> Diagram t a
-layout rows = let decidedWidth = L.map rowMinWidth rows |> L.maximum |> M.withDefault 0
-              in vcatA LeftA <| L.map (renderRow decidedWidth) rows
+layout rows =
+    let decidedWidth = L.map rowMinWidth rows |> L.maximum |> M.withDefault 0
+    in vcatA LeftA <| L.map (renderRow decidedWidth) rows
 
 fdMinWidth : FlexDiagram t a -> Width
-fdMinWidth fd = case fd of
-                Block _ width -> width
-                Expando attrs -> attrs.minWidth
+fdMinWidth fd =
+    case fd of
+      Block _ width -> width
+      Expando attrs -> attrs.minWidth
 
 rowMinWidth : LayoutRow t a -> Width
 rowMinWidth fds = L.sum <| L.map fdMinWidth fds

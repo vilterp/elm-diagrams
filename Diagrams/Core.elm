@@ -99,11 +99,12 @@ polygon : List Point -> FillStroke -> Diagram t a
 polygon points fs = Path points fs ClosedP
 
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
-text : String -> T.Style -> Diagram t a
-text txt style = let text = T.fromString txt |> T.style style
-                     height = (M.withDefault 12 <| style.height) * 1.5 -- HACK
-                     width = DMT.textWidth text
-                 in Text text { width = width, height = height }
+text : T.Style -> String -> Diagram t a
+text style txt =
+    let text = T.fromString txt |> T.style style
+        height = (M.withDefault 12 <| style.height) * 1.5 -- HACK
+        width = DMT.textWidth text
+    in Text text { width = width, height = height }
 
 {-| Spacer with given width and height; renders as transparent. -}
 spacer : Float -> Float -> Diagram t a
