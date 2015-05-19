@@ -40,10 +40,9 @@ makeUpdateStream : CollageLocFunc -> Signal (CollageLocation, PrimMouseEvent)
 makeUpdateStream clf =
     let collageLocs = S.map clf floatWindowDims
         mouseEvts = mouseEvents collageLocs
-        tups = S.map2 (,) collageLocs mouseEvts
-    in S.filter (\(loc, (evtType, point)) -> point `pointInside` { loc | offset <- (0, 0)})
+    in S.map2 (,) collageLocs mouseEvts
+        |> S.filter (\(loc, (evtType, point)) -> point `pointInside` { loc | offset <- (0, 0)})
                 ({dims={width=0, height=0}, offset=(0,0)},(MouseUpEvt,(0,0)))
-                tups
 
 {-| Given a signal of collage locations, return a signal of mouse events offset from the
 center of that location. -}
@@ -59,9 +58,10 @@ mouseEvents loc =
 and the dimensions of the collage, return a signal of the mouse position relative to the center of that collage,
 and increasing up and to the right instead of down and to the right. -}
 offsetMousePos : CollageLocation -> Point -> Point
-offsetMousePos loc (x, y) = let (offsetX, offsetY) = loc.offset
-                                {width, height} = loc.dims
-                            in (x - width/2 - offsetX, (height/2 + offsetY) - y)
+offsetMousePos loc (x, y) =
+    let (offsetX, offsetY) = loc.offset
+        {width, height} = loc.dims
+    in (x - width/2 - offsetX, (height/2 + offsetY) - y)
 
 -- input signals
 
