@@ -1,4 +1,6 @@
-module Diagrams.Query where
+module Diagrams.Query
+    (PickTree(..), pick, getCoords, TagPath)
+    where
 
 {-| Retreive information about laid-out diagrams.
 
@@ -39,37 +41,61 @@ type PickTree t a
 what subtree of the diagram that point is currently over. -}
 pick : Diagram t a -> Point -> Maybe (PickTree t a)
 pick diag point =
-    let handleBox w h borderWidth =
-          let (x, y) = point
-              w2 = w/2 + borderWidth
-              h2 = h/2 + borderWidth
-          in if x < w2 && x > -w2 && y < h2 && y > -h2
-             then Just PickLeaf
-             else Nothing
-    in case diag of
-         Circle r fs -> if magnitude point <= r + (halfStrokeWidth fs) then Just PickLeaf else Nothing
-         Path pts _ _ -> Nothing -- TODO implement picking for paths
-         Rect w h fs -> handleBox w h (halfStrokeWidth fs)
-         Text _ _ te -> handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
-         Group dias -> case L.filterMap (\d -> pick d point) dias of
-                          [] -> Nothing
-                          [x] -> Just x
-                          xs -> Just <| PickLayers xs
-         Tag t acts diagram -> 
-            pick diagram point |> M.map (\res -> PickTag { tag = t
-                                                         , actionSet = acts
-                                                         , offset = point
-                                                         , child = res
-                                                         })
-         TransformD trans diagram -> pick diagram (applyTrans (invertTrans trans) point)
+  let
+    handleBox w h borderWidth =
+      let
+        (x, y) = point
+        w2 = w/2 + borderWidth
+        h2 = h/2 + borderWidth
+      in
+        if x < w2 && x > -w2 && y < h2 && y > -h2
+        then Just PickLeaf
+        else Nothing
+  in
+    case diag of
+      Circle r fs ->
+        if magnitude point <= r + (halfStrokeWidth fs) then
+          Just PickLeaf
+        else
+          Nothing
+
+      Path pts _ _ ->
+        Nothing -- TODO implement picking for paths
+
+      Rect w h fs ->
+        handleBox w h (halfStrokeWidth fs)
+
+      Text _ _ te ->
+        handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
+
+      Group dias ->
+        case L.filterMap (\d -> pick d point) dias of
+          [] -> Nothing
+          [x] -> Just x
+          xs -> Just <| PickLayers xs
+
+      Tag t acts diagram -> 
+         pick diagram point
+          |> M.map (\res ->
+              PickTag
+                { tag = t
+                , actionSet = acts
+                , offset = point
+                , child = res
+                })
+
+      TransformD trans diagram ->
+        pick diagram (applyTrans (invertTrans trans) point)
 
 -- like M.oneOf, for lists...
 firstNonempty : List (List a) -> List a
-firstNonempty l = case l of
-                    [] -> []
-                    []::xs -> firstNonempty xs
-                    x::xs -> x
+firstNonempty l =
+  case l of
+    [] -> []
+    []::xs -> firstNonempty xs
+    x::xs -> x
 
+{-|-}
 type alias TagPath a = List a
 
 {-| Try to find a subDiagram t at the given tag path. If it is found,
@@ -77,18 +103,22 @@ return `Just` the coordinates of its origin relative to the origin of this diagr
 If it isn't found, return `Nothing`. -}
 getCoords : Diagram t a -> TagPath t -> Maybe Point
 getCoords dia path =
-    let recurse diag path start = 
-          case path of
-            [] -> Just start
-            (x::xs) -> 
-              case diag of
-                Tag t _ dia ->
-                    if x == t
-                    then recurse dia xs start
-                    else Nothing
-                Group dias ->
-                    M.oneOf <| L.map (\d -> recurse d path start) dias
-                TransformD trans dia ->
-                    recurse dia path (applyTrans trans start)
-                _ -> Nothing
-    in recurse dia path (0, 0)
+    let
+      recurse diag path start = 
+        case path of
+          [] ->
+            Just start
+
+          (x::xs) -> 
+            case diag of
+              Tag t _ dia ->
+                  if x == t
+                  then recurse dia xs start
+                  else Nothing
+              Group dias ->
+                  M.oneOf <| L.map (\d -> recurse d path start) dias
+              TransformD trans dia ->
+                  recurse dia path (applyTrans trans start)
+              _ -> Nothing
+    in
+      recurse dia path (0, 0)

@@ -1,4 +1,4 @@
-module Diagrams.Bezier where
+module Diagrams.Bezier (bezier) where
 
 {-| Generate bezier paths as lists of points.
 Adapted from [this gist](https://gist.github.com/irrwitz/968b9762819974c92c9f).

@@ -9,7 +9,7 @@ module Diagrams.Wiring where
 @docs makeUpdateStream, mouseEvents, offsetMousePos
 
 # Input Signals
-@docs floatMousePos, floatWindowDims
+@docs floatMousePos, floatWindowDims, toPoint
 -}
 
 import Signal as S
@@ -21,16 +21,22 @@ import Diagrams.Geom exposing (..)
 
 {-| Position of a rectangle on the screen in which a diagram will be drawn (as a `Graphics.Collage`).
 Offset is difference between top left of screen and top left of collage, increasing right and down. -}
-type alias CollageLocation = OffsetDimsBox
+type alias CollageLocation =
+  OffsetDimsBox
 
-type alias PrimMouseEvent = (PrimMouseEvtType, Point)
+{-|-}
+type alias PrimMouseEvent =
+  (PrimMouseEvtType, Point)
 
-type PrimMouseEvtType = MouseUpEvt
-                      | MouseDownEvt
-                      | MouseMoveEvt
+{-|-}
+type PrimMouseEvtType
+  = MouseUpEvt
+  | MouseDownEvt
+  | MouseMoveEvt
 
 {-| Given window size, where on screen and how big is your collage? -}
-type alias CollageLocFunc = Dims -> CollageLocation
+type alias CollageLocFunc =
+  Dims -> CollageLocation
 
 -- BUG: `pointInside` sees offset as middle of box; `Wiring` uses it as top left (#37)
 {-| Given collage location function, return stream of (collage location, mouse event)
@@ -65,12 +71,15 @@ offsetMousePos loc (x, y) = let (offsetX, offsetY) = loc.offset
 
 -- input signals
 
+{-|-}
 toPoint : (Int, Int) -> Point
 toPoint (x, y) = (toFloat x, toFloat y)
 
+{-|-}
 floatMousePos : Signal Point
 floatMousePos = S.map toPoint Mouse.position
 
+{-|-}
 floatWindowDims : Signal Dims
 floatWindowDims = S.map (\(w, h) -> { width = toFloat w, height = toFloat h })
                         Window.dimensions

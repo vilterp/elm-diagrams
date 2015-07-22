@@ -34,7 +34,7 @@ which exports everything is a good idea.
  [mod-graph]: https://docs.google.com/drawings/d/1_321XRPhfP8t0u747QhNwR_PiibVHroxcioLq-vHdq8/edit
 
 # Basic Types
-@docs Diagram, PathType, Transform
+@docs Diagram, PathType
 
 # Constructors
 @docs circle, rect, path, polygon, text, spacer, transform, group, tag, tagWithActions, ngon, eqTriangle
@@ -61,6 +61,7 @@ import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.Actions exposing (..)
 
+{-|-}
 type PathType = ClosedP | OpenP
 
 {-| The recursive tree datatype which represents diagrams. NOTE: because
@@ -93,15 +94,22 @@ rect = Rect
 
 {-| Unclosed path made of this list of points, laid out relative to the local origin. -}
 path : List Point -> C.LineStyle -> Diagram t a
-path points ls = Path points (justStroke ls) OpenP
+path points ls =
+  Path points (justStroke ls) OpenP
 
+{-|-}
 polygon : List Point -> FillStroke -> Diagram t a
-polygon points fs = Path points fs ClosedP
+polygon points fs =
+  Path points fs ClosedP
 
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
 text : String -> T.Style -> Diagram t a
-text txt style = let te = textElem txt style
-                 in Text txt style te
+text txt style =
+  let
+    te =
+      T.fromString txt |> T.style style |> E.centered
+  in
+    Text txt style te
 
 {-| Spacer with given width and height; renders as transparent. -}
 spacer : Float -> Float -> Diagram t a
@@ -150,50 +158,57 @@ rotate r d = TransformD (Rotate r) d
 move : (Float, Float) -> Diagram t a -> Diagram t a
 move (x, y) dia = TransformD (Translate x y) dia
 
+{-|-}
 moveX : Float -> Diagram t a -> Diagram t a
 moveX x = move (x, 0)
 
+{-|-}
 moveY : Float -> Diagram t a -> Diagram t a
 moveY y = move (0, y)
 
+{-|-}
 scale : Float -> Diagram t a -> Diagram t a
 scale s d = TransformD (Scale s) d
 
 -- rendering
 
+{-|-}
 render : Diagram t a -> C.Form
-render d = let handleFS fs pathType shape =
-                let filled =  case fs.fill of
-                                Just fillStyle ->
-                                    case fillStyle of
-                                      Solid color -> [C.filled color shape]
-                                      Texture src -> [C.textured src shape]
-                                      Grad grad -> [C.gradient grad shape]
-                                Nothing -> []
-                    stroked = case fs.stroke of
-                                Just strokeStyle ->
-                                case pathType of
-                                  ClosedP -> [C.outlined strokeStyle shape]
-                                  OpenP -> [C.traced strokeStyle shape]
-                                Nothing -> []
-                in C.group <| stroked ++ filled
-           in case d of
-                Tag _ _ dia -> render dia
-                Group dias -> C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
-                                                                        -- have to reverse tho
-                TransformD (Scale s) dia -> C.scale s <| render dia
-                TransformD (Rotate r) dia -> C.rotate r <| render dia
-                TransformD (Translate x y) dia -> C.move (x, y) <| render dia
-                Text str ts te -> C.text <| T.style ts <| T.fromString str
-                Path path fs ty -> handleFS fs ty path
-                Rect w h fs -> handleFS fs ClosedP <| C.rect w h
-                Circle r fs -> handleFS fs ClosedP <| C.circle r
-
-textElem : String -> T.Style -> E.Element
-textElem str ts = T.fromString str |> T.style ts |> E.centered
+render d =
+  let
+    handleFS fs pathType shape =
+      let filled =
+            case fs.fill of
+              Just fillStyle ->
+                case fillStyle of
+                  Solid color -> [C.filled color shape]
+                  Texture src -> [C.textured src shape]
+                  Grad grad -> [C.gradient grad shape]
+              Nothing -> []
+          stroked =
+            case fs.stroke of
+              Just strokeStyle ->
+                case pathType of
+                  ClosedP -> [C.outlined strokeStyle shape]
+                  OpenP -> [C.traced strokeStyle shape]
+              Nothing -> []
+      in C.group <| stroked ++ filled
+ in
+  case d of
+    Tag _ _ dia -> render dia
+    Group dias -> C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
+                                                            -- have to reverse tho
+    TransformD (Scale s) dia -> C.scale s <| render dia
+    TransformD (Rotate r) dia -> C.rotate r <| render dia
+    TransformD (Translate x y) dia -> C.move (x, y) <| render dia
+    Text str ts te -> C.text <| T.style ts <| T.fromString str
+    Path path fs ty -> handleFS fs ty path
+    Rect w h fs -> handleFS fs ClosedP <| C.rect w h
+    Circle r fs -> handleFS fs ClosedP <| C.circle r
 
 -- shortcuts
 
+{-|-}
 empty : Diagram t a
 empty = spacer 0 0
 
