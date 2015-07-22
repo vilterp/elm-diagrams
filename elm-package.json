@@ -11,6 +11,8 @@
         "Diagrams.Align",
         "Diagrams.Bezier",
         "Diagrams.Core",
+        "Diagrams.Render.Collage",
+        "Diagrams.Render.Svg",
         "Diagrams.Debug",
         "Diagrams.Envelope",
         "Diagrams.FillStroke",
@@ -22,7 +24,8 @@
         "Diagrams.Wiring"
     ],
     "dependencies": {
-        "elm-lang/core": "2.0.0 <= v < 3.0.0"
+        "elm-lang/core": "2.0.0 <= v < 3.0.0",
+        "evancz/elm-svg": "2.0.0 <= v < 3.0.0"
     },
     "elm-version": "0.15.0 <= v < 0.16.0"
 }

@@ -1,19 +1,15 @@
-module Diagrams.Render.Collage where
+module Diagrams.Render.Svg where
 
-{-|
-@docs render
--}
-
-import Text as T
-import List as L
-import Graphics.Collage as C
+import Svg exposing (..)
+import Svg.Attributes exposing (..)
+import Svg.Events exposing (..)
 
 import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.Core exposing (..)
 
 {-|-}
-render : Diagram t a -> Svg
+render : Diagram t a -> C.Form
 render d =
   let
     handleFS fs pathType shape =
@@ -42,7 +38,8 @@ render d =
       render dia
 
     Group dias ->
-      C.group (L.map render <| L.reverse dias)
+      group []
+        (L.map render <| L.reverse dias)
 
     TransformD (Scale s) dia ->
       C.scale s <| render dia
@@ -54,7 +51,7 @@ render d =
       C.move (x, y) <| render dia
 
     Text str ts te ->
-      text <| T.style ts <| T.fromString str
+      C.text <| T.style ts <| T.fromString str
 
     Path path fs ty ->
       handleFS fs ty path
