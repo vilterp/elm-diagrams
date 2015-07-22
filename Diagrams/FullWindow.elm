@@ -14,6 +14,7 @@ import Graphics.Collage as C
 
 import Diagrams.Wiring exposing (..)
 import Diagrams.Core exposing (..)
+import Diagrams.Render.Collage exposing (..)
 
 {-| A location function which always returns a `CollageLocation` in the middle of the window,
 filling the whole window. -}
