@@ -14,6 +14,7 @@ module Diagrams.Query
 import List as L
 import Maybe as M
 import Graphics.Element as E
+import Debug
 
 import Diagrams.Core exposing (..)
 import Diagrams.Geom exposing (..)
@@ -59,8 +60,11 @@ pick diag point =
         else
           Nothing
 
-      Path pts _ _ ->
-        Nothing -- TODO implement picking for paths
+      Path pts _ ->
+        Debug.crash "picking not implemented for paths"
+
+      Polygon _ _ ->
+        Debug.crash "picking not implemented for polygons"
 
       Rect w h fs ->
         handleBox w h (halfStrokeWidth fs)

@@ -30,6 +30,17 @@ envelope dir dia =
                      Left -> w/2
                      Right -> w/2
         in base + borderWidth
+
+      handlePath path =
+        let
+          xs = L.map fst path
+          ys = L.map snd path
+        in
+          case dir of
+            Left -> -(def0 <| L.minimum xs)
+            Right -> def0 <| L.maximum xs
+            Up -> def0 <| L.maximum ys
+            Down -> -(def0 <| L.minimum ys)
     in
       case dia of
         Tag _ _ dia' ->
@@ -44,17 +55,22 @@ envelope dir dia =
           s * (envelope dir diag)
 
         TransformD (Rotate r) rotDia ->
+          let
+            transformPoints points =
+              L.map (applyTrans <| Rotate r) points
+          in
             case rotDia of
-              Path points fs pt ->
-                let
-                  newPoints =
-                    L.map (applyTrans <| Rotate r) points
-                in
-                  envelope dir <| Path newPoints fs pt
+              Path points ls ->
+                Path (transformPoints points) ls
+                  |> envelope dir
+
+              Polygon points fs ->
+                Polygon (transformPoints points) fs
+                  |> envelope dir
 
               Circle _ _ ->
                 envelope dir rotDia
-              -- TODO: handleBox for rect, text
+            -- TODO: handleBox for rect, text
         TransformD (Translate tx ty) diag ->
           let
             env =
@@ -69,16 +85,11 @@ envelope dir dia =
         Text str ts te ->
           handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
 
-        Path path fs _ ->
-          let
-            xs = L.map fst path
-            ys = L.map snd path
-          in
-            case dir of
-              Left -> -(def0 <| L.minimum xs)
-              Right -> def0 <| L.maximum xs
-              Up -> def0 <| L.maximum ys
-              Down -> -(def0 <| L.minimum ys)
+        Path path _ ->
+          handlePath path
+
+        Polygon path _ ->
+          handlePath path
 
         Rect w h fs ->
           handleBox w h (halfStrokeWidth fs)
