@@ -136,7 +136,7 @@ new `MouseDiagram` with list of actions triggered by this mouse event. -}
 processMouseEvent : Diagram t a -> MouseState t a -> PrimMouseEvent -> (MouseState t a, List a)
 processMouseEvent diagram mouseState (evt, mousePos) =
     let
-      overTree = Debug.log "OT" <| pick diagram mousePos -- need to pick every time because actions may have changed
+      overTree = pick diagram mousePos -- need to pick every time because actions may have changed
       overPickedTags = preorderTraverse overTree
       overPaths = tagPaths overPickedTags
       oldOverPickedTags = mouseState.overPickedTags
