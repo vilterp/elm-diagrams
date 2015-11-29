@@ -102,9 +102,9 @@ update (loc, evt) intState =
     newDiagram =
       intState.renderFunc newModel
   in
-    { intState | mouseState <- newMS
-               , diagram <- newDiagram
-               , modelState <- newModel
+    { intState | mouseState = newMS
+               , diagram = newDiagram
+               , modelState = newModel
                }
 
 {-|-}
@@ -123,8 +123,8 @@ updateModel upFun state =
   let
     newModel = upFun state.modelState
   in
-    { state | modelState <- newModel
-            , diagram <- state.renderFunc newModel
+    { state | modelState = newModel
+            , diagram = state.renderFunc newModel
             }
 
 -- BUG: no initial pick path
@@ -135,7 +135,7 @@ new `MouseDiagram` with list of actions triggered by this mouse event. -}
 processMouseEvent : Diagram t a -> MouseState t a -> PrimMouseEvent -> (MouseState t a, List a)
 processMouseEvent diagram mouseState (evt, mousePos) =
     let
-      overTree = Debug.watch "OT" <| pick diagram mousePos -- need to pick every time because actions may have changed
+      overTree = Debug.log "OT" <| pick diagram mousePos -- need to pick every time because actions may have changed
       overPickedTags = preorderTraverse overTree
       overPaths = tagPaths overPickedTags
       oldOverPickedTags = mouseState.overPickedTags
@@ -154,14 +154,14 @@ processMouseEvent diagram mouseState (evt, mousePos) =
                L.filter (\pTag -> L.member (tagPath pTag) oldOverPaths) overPickedTags
 
           in
-            ( { mouseState | overPickedTags <- overPickedTags }
+            ( { mouseState | overPickedTags = overPickedTags }
             , applyActions <| enters ++ leaves ++ moves
             )
 
         MouseDownEvt ->
-          ( { mouseState | isDown <- True
-                         , overPathsOnMouseDown <- Just overPaths
-                         , overPickedTags <- overPickedTags }
+          ( { mouseState | isDown = True
+                         , overPathsOnMouseDown = Just overPaths
+                         , overPickedTags = overPickedTags }
           , applyActions <| L.filterMap (getHandler .mouseDown) overPickedTags
           )
 
@@ -175,9 +175,9 @@ processMouseEvent diagram mouseState (evt, mousePos) =
               then L.filterMap (getHandler .click) overPickedTags
               else []
           in
-            ( { mouseState | isDown <- False
-                           , overPathsOnMouseDown <- Nothing
-                           , overPickedTags <- overPickedTags }
+            ( { mouseState | isDown = False
+                           , overPathsOnMouseDown = Nothing
+                           , overPickedTags = overPickedTags }
             , applyActions <| clicks ++ mouseUps
             )
 

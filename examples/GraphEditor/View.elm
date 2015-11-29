@@ -25,11 +25,11 @@ import GraphEditor.Model exposing (..)
 -- Styles
 
 defaultTextStyle = T.defaultStyle
-titleStyle = { defaultTextStyle | bold <- True }
+titleStyle = { defaultTextStyle | bold = True }
 
 defaultLineStyle = C.defaultLine
 
-edgeStyle = { defaultLineStyle | width <- 3 }
+edgeStyle = { defaultLineStyle | width = 3 }
 
 defLine = C.defaultLine
 
@@ -38,24 +38,24 @@ defLine = C.defaultLine
 -- TODO: this is pretty verbose
 posNodeActions nodeId dragState =
     case dragState of
-      Nothing -> { emptyActionSet | mouseDown <- Just <| stopBubbling <|
+      Nothing -> { emptyActionSet | mouseDown = Just <| stopBubbling <|
                                       \(MouseEvent evt) -> DragNodeStart { nodeId = nodeId, offset = evt.offset } }
       _ -> emptyActionSet
 
 -- BUG: click isn't working here
-nodeXOutActions nodeId = { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveNode nodeId }
+nodeXOutActions nodeId = { emptyActionSet | click = Just <| keepBubbling <| always <| RemoveNode nodeId }
 
-edgeXOutActions edge = { emptyActionSet | click <- Just <| keepBubbling <| always <| RemoveEdge edge }
+edgeXOutActions edge = { emptyActionSet | click = Just <| keepBubbling <| always <| RemoveEdge edge }
 
 canvasActions dragState =
-    let dragMove = { emptyActionSet | mouseMove <- Just <| stopBubbling <| \(MouseEvent evt) -> DragMove evt.offset
-                                    , mouseUp <- Just <| stopBubbling <| always DragEnd }
+    let dragMove = { emptyActionSet | mouseMove = Just <| stopBubbling <| \(MouseEvent evt) -> DragMove evt.offset
+                                    , mouseUp = Just <| stopBubbling <| always DragEnd }
     in case dragState of
          Nothing -> emptyActionSet
          _ -> dragMove
 
 outPortActions : PortId -> ActionSet Tag Action
-outPortActions portId = { emptyActionSet | mouseDown <- Just <| stopBubbling <|
+outPortActions portId = { emptyActionSet | mouseDown = Just <| stopBubbling <|
                                               \evt -> DragEdgeStart { fromPort = portId
                                                                     , endPos = M.withDefault (0,0) <| mousePosAtPath evt [Canvas]
                                                                     } }
@@ -63,13 +63,13 @@ outPortActions portId = { emptyActionSet | mouseDown <- Just <| stopBubbling <|
 inPortActions : PortId -> Maybe DraggingState -> ActionSet Tag Action
 inPortActions portId dragState =
     case dragState of
-      Just (DraggingEdge attrs) -> { emptyActionSet | mouseUp <- Just <| stopBubbling <|
+      Just (DraggingEdge attrs) -> { emptyActionSet | mouseUp = Just <| stopBubbling <|
                                                         always <| AddEdge { from = attrs.fromPort, to = portId } }
       _ -> emptyActionSet
 
 -- views
 
-xGlyph = let smallLine = vline 11 { defLine | color <- Color.white, width <- 2 }
+xGlyph = let smallLine = vline 11 { defLine | color = Color.white, width = 2 }
              rotLeft = rotate (-pi/4) smallLine
              rotRight = rotate (pi/4) smallLine
              bg = circle 7 <| justFill <| Solid Color.red
@@ -114,16 +114,27 @@ viewGenericEdge fromCoords toCoords =
 
 viewDraggingEdge : PortId -> Diagram Tag Action -> Point -> Diagram Tag Action
 viewDraggingEdge (fromNode, fromPort) nodesDia mousePos =
-   let fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
-   in viewGenericEdge fromCoords mousePos
+  let
+    fromCoords =
+      case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of 
+        Just pt -> pt
+        Nothing -> Debug.crash "coords not found"
+  in
+    viewGenericEdge fromCoords mousePos
 
 getEdgeCoords : Diagram Tag Action -> Edge -> { from : Point, to : Point }
 getEdgeCoords nodesDia edg =
     let (fromNode, fromPort) = edg.from
         (toNode, toPort) = edg.to
         -- TODO: not sure how to not have these incomplete pattern matches
-        fromCoords = case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of { Just pt -> pt }
-        toCoords = case getCoords nodesDia [NodeIdT toNode, InPortT toPort] of { Just pt -> pt }
+        fromCoords =
+          case getCoords nodesDia [NodeIdT fromNode, OutPortT fromPort] of
+            Just pt -> pt
+            Nothing -> Debug.crash "coords not found"
+        toCoords =
+          case getCoords nodesDia [NodeIdT toNode, InPortT toPort] of
+            Just pt -> pt
+            Nothing -> Debug.crash "coords not found"
     in { from = fromCoords, to = toCoords }
 
 viewEdgeXOut : Diagram Tag Action -> Edge -> Diagram Tag Action

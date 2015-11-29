@@ -30,6 +30,17 @@ envelope dir dia =
                      Left -> w/2
                      Right -> w/2
         in base + borderWidth
+
+      handlePath path =
+        let
+          xs = L.map fst path
+          ys = L.map snd path
+        in
+          case dir of
+            Left -> -(def0 <| L.minimum xs)
+            Right -> def0 <| L.maximum xs
+            Up -> def0 <| L.maximum ys
+            Down -> -(def0 <| L.minimum ys)
     in
       case dia of
         Tag _ _ dia' ->
@@ -45,15 +56,26 @@ envelope dir dia =
 
         TransformD (Rotate r) rotDia ->
             case rotDia of
-              Path points fs pt ->
+              -- TODO: DRY
+              Path points fs ->
                 let
                   newPoints =
                     L.map (applyTrans <| Rotate r) points
                 in
-                  envelope dir <| Path newPoints fs pt
+                  envelope dir <| Path newPoints fs
+
+              Polygon points ls ->
+                let
+                  newPoints =
+                    L.map (applyTrans <| Rotate r) points
+                in
+                  envelope dir <| Polygon newPoints ls
 
               Circle _ _ ->
                 envelope dir rotDia
+
+              _ ->
+                Debug.crash "TODO"
               -- TODO: handleBox for rect, text
         TransformD (Translate tx ty) diag ->
           let
@@ -69,16 +91,11 @@ envelope dir dia =
         Text str ts te ->
           handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
 
-        Path path fs _ ->
-          let
-            xs = L.map fst path
-            ys = L.map snd path
-          in
-            case dir of
-              Left -> -(def0 <| L.minimum xs)
-              Right -> def0 <| L.maximum xs
-              Up -> def0 <| L.maximum ys
-              Down -> -(def0 <| L.minimum ys)
+        Path points fs ->
+          handlePath points
+
+        Polygon points fs ->
+          handlePath points
 
         Rect w h fs ->
           handleBox w h (halfStrokeWidth fs)

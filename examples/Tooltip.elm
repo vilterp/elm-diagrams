@@ -29,7 +29,7 @@ tooltip dir fs tipSpacing dia =
 
 helloWorld : Direction -> Diagram t a
 helloWorld dir = 
-    (text "Hello World" { defText | color <- Color.white, height <- Just 11 })
+    (text "Hello World" { defText | color = Color.white, height = Just 11 })
       |> tooltip dir (justSolidFill Color.black) 10
       |> showOrigin
       |> showBBox

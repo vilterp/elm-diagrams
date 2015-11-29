@@ -48,8 +48,8 @@ invisible =
 defaultStroke : C.LineStyle
 defaultStroke =
   let defLine = C.defaultLine
-  in { defLine | width <- 3
-               , cap <- C.Padded }
+  in { defLine | width = 3
+               , cap = C.Padded }
 
 {-|-}
 justSolidFill : Color.Color -> FillStroke

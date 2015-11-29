@@ -27,6 +27,7 @@ bezierPoint t points =
     case points of
       [x] -> x
       (x::xs) -> bezierPoint t (L.map2 (interpolatePoint t) points xs)
+      [] -> Debug.crash "no points"
 
 interpolatePoint : Float -> Point -> Point -> Point
 interpolatePoint t (x0, y0) (x1, y1) = (lerp (x0, x1) (0, 1) t, lerp (y0, y1) (0, 1) t)
@@ -43,6 +44,10 @@ resolution = generate 0 1.0 0.01
   of step value until end is reached or exceeded.
 --}
 generate : Float -> Float -> Float -> List Float
-generate start end step = if | end <= start -> []
-                             | start + step >= end -> [start, end]
-                             | otherwise -> [start] ++ generate (start + step) end step
+generate start end step =
+  if end <= start then
+    []
+  else if start + step >= end then
+    [start, end]
+  else
+    [start] ++ generate (start + step) end step

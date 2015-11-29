@@ -6,7 +6,7 @@ module Diagrams.Actions
 {-| ActionSets can be attached to diagrams with `Core.tagWithActions`, and used
 with module `Diagrams.Interact`. Build them with e.g.
     
-    { emptyActionSet | click <- Just <| keepBubbling <| \(MouseEvent evt) -> SomeAction evt.offset }
+    { emptyActionSet | click = Just <| keepBubbling <| \(MouseEvent evt) -> SomeAction evt.offset }
 
 (Will probably think of helpers to make this more concise later). See the `Diagrams.Interact` docs
 and the GraphEditor example for more info on how to use actions, including how bubbling works.
@@ -23,7 +23,7 @@ import Debug
 
 import Diagrams.Geom exposing (..)
 
--- TODO: tagging function easier than `tagWithAction tag { emptyActionSet | click <- Just ... } dia`?
+-- TODO: tagging function easier than `tagWithAction tag { emptyActionSet | click = Just ... } dia`?
 -- like `clickable tag func dia` or something
 -- or list of attributes like html
 

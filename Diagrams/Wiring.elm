@@ -47,7 +47,7 @@ makeUpdateStream clf =
     let collageLocs = S.map clf floatWindowDims
         mouseEvts = mouseEvents collageLocs
         tups = S.map2 (,) collageLocs mouseEvts
-    in S.filter (\(loc, (evtType, point)) -> point `pointInside` { loc | offset <- (0, 0)})
+    in S.filter (\(loc, (evtType, point)) -> point `pointInside` { loc | offset = (0, 0)})
                 ({dims={width=0, height=0}, offset=(0,0)},(MouseUpEvt,(0,0)))
                 tups
 

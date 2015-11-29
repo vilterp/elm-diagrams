@@ -21,6 +21,6 @@ showOrigin d = let originPoint = circle 3 <| justFill <| Solid Color.red
 {-| Draw a red dot box around a diagram. -}
 showBBox : Diagram t a -> Diagram t a
 showBBox d = let dfl = C.defaultLine
-                 style = { dfl | width <- 2
-                               , color <- Color.red }
+                 style = { dfl | width = 2
+                               , color = Color.red }
              in outlineBox style d

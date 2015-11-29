@@ -59,8 +59,11 @@ pick diag point =
         else
           Nothing
 
-      Path pts _ _ ->
+      Path pts _ ->
         Nothing -- TODO implement picking for paths
+
+      Polygon _ _ ->
+        Nothing -- TODO: picking for polygons
 
       Rect w h fs ->
         handleBox w h (halfStrokeWidth fs)

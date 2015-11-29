@@ -34,7 +34,7 @@ which exports everything is a good idea.
  [mod-graph]: https://docs.google.com/drawings/d/1_321XRPhfP8t0u747QhNwR_PiibVHroxcioLq-vHdq8/edit
 
 # Basic Types
-@docs Diagram, PathType
+@docs Diagram
 
 # Constructors
 @docs circle, rect, path, polygon, text, spacer, transform, group, tag, tagWithActions, ngon, eqTriangle
@@ -61,9 +61,6 @@ import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.Actions exposing (..)
 
-{-|-}
-type PathType = ClosedP | OpenP
-
 {-| The recursive tree datatype which represents diagrams. NOTE: because
 these may change, use the functions under Constructors to create them,
 not the datatype constructors themselves. -}
@@ -71,7 +68,8 @@ type Diagram t a
     -- primitives
     = Circle Float FillStroke
     | Rect Float Float FillStroke
-    | Path (List Point) FillStroke PathType
+    | Polygon (List Point) FillStroke
+    | Path (List Point) C.LineStyle
     | Text String T.Style E.Element
     -- transformation
     | TransformD Transform (Diagram t a)
@@ -95,12 +93,12 @@ rect = Rect
 {-| Unclosed path made of this list of points, laid out relative to the local origin. -}
 path : List Point -> C.LineStyle -> Diagram t a
 path points ls =
-  Path points (justStroke ls) OpenP
+  Path points ls
 
 {-|-}
 polygon : List Point -> FillStroke -> Diagram t a
 polygon points fs =
-  Path points fs ClosedP
+  Polygon points fs
 
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
 text : String -> T.Style -> Diagram t a
@@ -176,7 +174,7 @@ scale s d = TransformD (Scale s) d
 render : Diagram t a -> C.Form
 render d =
   let
-    handleFS fs pathType shape =
+    handleFS fs shape =
       let filled =
             case fs.fill of
               Just fillStyle ->
@@ -188,23 +186,32 @@ render d =
           stroked =
             case fs.stroke of
               Just strokeStyle ->
-                case pathType of
-                  ClosedP -> [C.outlined strokeStyle shape]
-                  OpenP -> [C.traced strokeStyle shape]
+                [C.outlined strokeStyle shape]
               Nothing -> []
       in C.group <| stroked ++ filled
  in
   case d of
-    Tag _ _ dia -> render dia
-    Group dias -> C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
+    Tag _ _ dia ->
+      render dia
+    Group dias ->
+      C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
                                                             -- have to reverse tho
-    TransformD (Scale s) dia -> C.scale s <| render dia
-    TransformD (Rotate r) dia -> C.rotate r <| render dia
-    TransformD (Translate x y) dia -> C.move (x, y) <| render dia
-    Text str ts te -> C.text <| T.style ts <| T.fromString str
-    Path path fs ty -> handleFS fs ty path
-    Rect w h fs -> handleFS fs ClosedP <| C.rect w h
-    Circle r fs -> handleFS fs ClosedP <| C.circle r
+    TransformD (Scale s) dia ->
+      C.scale s <| render dia
+    TransformD (Rotate r) dia ->
+      C.rotate r <| render dia
+    TransformD (Translate x y) dia ->
+      C.move (x, y) <| render dia
+    Text str ts te ->
+      C.text <| T.style ts <| T.fromString str
+    Path path ls ->
+      C.path path |> C.traced ls
+    Polygon points fs ->
+      handleFS fs <| C.polygon points
+    Rect w h fs ->
+      handleFS fs <| C.rect w h
+    Circle r fs ->
+      handleFS fs <| C.circle r
 
 -- shortcuts
 

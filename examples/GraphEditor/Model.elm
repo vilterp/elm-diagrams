@@ -31,41 +31,43 @@ type alias State = { graph : Graph, dragState : Maybe DraggingState }
 
 -- tags
 
-type Tag = NodeIdT NodeId
-         | TitleT
-         | InPortT SlotId
-         | OutPortT SlotId
-         | XOut
-         | Canvas
+type Tag
+  = NodeIdT NodeId
+  | TitleT
+  | InPortT SlotId
+  | OutPortT SlotId
+  | XOut
+  | Canvas
 
-type Action = DragNodeStart { nodeId : NodeId, offset : Point }
-            | DragEdgeStart { fromPort : PortId, endPos : Point }
-            | DragMove Point
-            | DragEnd
-            | RemoveNode NodeId
-            | RemoveEdge Edge
-            | AddEdge Edge
-            | NoOp
+type Action
+  = DragNodeStart { nodeId : NodeId, offset : Point }
+  | DragEdgeStart { fromPort : PortId, endPos : Point }
+  | DragMove Point
+  | DragEnd
+  | RemoveNode NodeId
+  | RemoveEdge Edge
+  | AddEdge Edge
+  | NoOp
 
 -- operations
 
 moveNode : Graph -> NodeId -> Point -> Graph
 moveNode model nodeId newPos =
   let updateFn value = case value of
-                         Just posNode -> Just { posNode | pos <- newPos }
+                         Just posNode -> Just { posNode | pos = newPos }
                          Nothing -> Nothing
-  in { model | nodes <- D.update nodeId updateFn model.nodes }
+  in { model | nodes = D.update nodeId updateFn model.nodes }
 
 -- TODO: check dups...
 addEdge : Graph -> Edge -> Graph
-addEdge model newEdge = { model | edges <- newEdge :: model.edges }
+addEdge model newEdge = { model | edges = newEdge :: model.edges }
 
 removeNode : Graph -> NodeId -> Graph
-removeNode graph nodeId = { graph | nodes <- D.remove nodeId graph.nodes
-                                  , edges <- L.filter (\e -> fst e.from /= nodeId && fst e.to /= nodeId) graph.edges }
+removeNode graph nodeId = { graph | nodes = D.remove nodeId graph.nodes
+                                  , edges = L.filter (\e -> fst e.from /= nodeId && fst e.to /= nodeId) graph.edges }
 
 removeEdge : Graph -> Edge -> Graph
-removeEdge graph edge = { graph | edges <- L.filter (\e -> e /= edge) graph.edges }
+removeEdge graph edge = { graph | edges = L.filter (\e -> e /= edge) graph.edges }
 
 addNode : PosNode -> Graph -> Graph
-addNode node graph = { graph | nodes <- D.insert node.id node graph.nodes }
+addNode node graph = { graph | nodes = D.insert node.id node graph.nodes }

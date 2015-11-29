@@ -26,16 +26,16 @@ type Expr = Ap Expr (List Expr)
 -- STYLES
 
 defTextStyle = let ds = T.defaultStyle
-               in { ds | typeface <- ["Courier", "Courier New", "Lucida Console",
+               in { ds | typeface = ["Courier", "Courier New", "Lucida Console",
                                       "Monaco", "Consolas"] }
-numberLitStyle = { defTextStyle | color <- C.blue }
+numberLitStyle = { defTextStyle | color = C.blue }
 intLitStyle = numberLitStyle
 floatLitStyle = numberLitStyle
-stringLitStyle = { defTextStyle | color <- C.green }
+stringLitStyle = { defTextStyle | color = C.green }
 varStyle = defTextStyle
 
-keywordStyle = { defTextStyle | color <- C.orange
-                              , bold <- True }
+keywordStyle = { defTextStyle | color = C.orange
+                              , bold = True }
 
 hSpacer = hspace 7
 
@@ -73,6 +73,8 @@ view expr =
                              in vcatA LeftA [ hcat [keyword "let", hSpacer, vcat bindingDias]
                                             , hcat [keyword "in", hSpacer, view expr]
                                             ]
+    _ ->
+      Debug.crash "TODO"
 
 -- TEST DATA
 
