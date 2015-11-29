@@ -101,8 +101,8 @@ polygon points fs =
   Polygon points fs
 
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
-text : String -> T.Style -> Diagram t a
-text txt style =
+text : T.Style -> String -> Diagram t a
+text style txt =
   let
     te =
       T.fromString txt |> T.style style |> E.centered

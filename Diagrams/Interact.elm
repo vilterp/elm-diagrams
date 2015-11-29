@@ -1,7 +1,8 @@
 module Diagrams.Interact
     ( RenderFunc, UpdateFunc
     , InteractionState, MouseState
-    , initInteractState, interactFold, update, updateModel
+    , initInteractState, interactFold, update, updateModel, initMouseState
+    , processMouseEvent
     ) where
 
 {-| An abstraction for making diagrams which change as a function of the mouse.
@@ -229,6 +230,7 @@ applyActions pickedTags =
   mapWithEarlyStop
     (\(pTag, e2a) -> e2a <| MouseEvent { offset = pTag.offset, path = pTag.path })
     pickedTags
+  |> L.concat
 
 {-| Like map, but stops if the second element of the function result is True. -}
 mapWithEarlyStop : (a -> (b, Bool)) -> List a -> List b
