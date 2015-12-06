@@ -1,6 +1,7 @@
 module Tooltip where
 
 import Diagrams.Core exposing (..)
+import Diagrams.Type exposing (..)
 import Diagrams.Geom exposing (..)
 import Diagrams.Align exposing (..)
 import Diagrams.Pad exposing (..)
@@ -29,7 +30,7 @@ tooltip dir fs tipSpacing dia =
 
 helloWorld : Direction -> Diagram t a
 helloWorld dir = 
-    (text "Hello World" { defText | color = Color.white, height = Just 11 })
+    (text { defText | color = Color.white, height = Just 11 } "Hello World")
       |> tooltip dir (justSolidFill Color.black) 10
       |> showOrigin
       |> showBBox

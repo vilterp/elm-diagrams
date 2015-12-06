@@ -1,4 +1,10 @@
-module Diagrams.Core where
+module Diagrams.Core
+    ( circle, rect, path, polygon, text, spacer, transform
+    , group, tag, tagWithActions, ngon, eqTriangle
+    , move, moveX, moveY, scale, rotate
+    , render
+    , empty, vspace, hspace, vline, hline
+    ) where
 
 {-| Diagrams is a library built on top of `Graphics.Collage` which allows you to
 construct graphics by laying out elements relative to each other.
@@ -33,9 +39,6 @@ which exports everything is a good idea.
  [hd-tut]: http://projects.haskell.org/diagrams/doc/quickstart.html
  [mod-graph]: https://docs.google.com/drawings/d/1_321XRPhfP8t0u747QhNwR_PiibVHroxcioLq-vHdq8/edit
 
-# Basic Types
-@docs Diagram
-
 # Constructors
 @docs circle, rect, path, polygon, text, spacer, transform, group, tag, tagWithActions, ngon, eqTriangle
 
@@ -60,23 +63,7 @@ import Color
 import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.Actions exposing (..)
-
-{-| The recursive tree datatype which represents diagrams. NOTE: because
-these may change, use the functions under Constructors to create them,
-not the datatype constructors themselves. -}
-type Diagram t a
-    -- primitives
-    = Circle Float FillStroke
-    | Rect Float Float FillStroke
-    | Polygon (List Point) FillStroke
-    | Path (List Point) C.LineStyle
-    | Text String T.Style E.Element
-    -- transformation
-    | TransformD Transform (Diagram t a)
-    -- group
-    | Group (List (Diagram t a))
-    -- tag
-    | Tag t (ActionSet t a) (Diagram t a)
+import Diagrams.Type exposing (..)
 
 -- constructors
 

@@ -1,6 +1,6 @@
 module Diagrams.Query
-    (PickTree(..), pick, getCoords, TagPath)
-    where
+    ( PickTree(..), pick, getCoords, TagPath
+    ) where
 
 {-| Retreive information about laid-out diagrams.
 
@@ -19,6 +19,7 @@ import Diagrams.Core exposing (..)
 import Diagrams.Geom exposing (..)
 import Diagrams.Actions exposing (..)
 import Diagrams.FillStroke exposing (..)
+import Diagrams.Type exposing (..)
 
 {-| Result of `pick`: tree representing the subtree of the Diagram the
 given point is over.

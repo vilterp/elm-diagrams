@@ -12,6 +12,7 @@ import Diagrams.Core exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.Align exposing (..)
 import Diagrams.Pad exposing (..)
+import Diagrams.Type exposing (..)
 
 {-| Draw a red dot at `(0, 0)` in the diagram's local vector space. -}
 showOrigin : Diagram t a -> Diagram t a

@@ -1,15 +1,17 @@
 module LanguageViz where
 
-import Diagrams.Core exposing (..)
-import Diagrams.Align exposing (..)
-import Diagrams.FillStroke exposing (..)
-import Diagrams.FullWindow exposing (..)
 import Window
 import Mouse
 import Signal as S
 import List as L
 import Text as T
 import Color as C
+
+import Diagrams.Core exposing (..)
+import Diagrams.Type exposing (..)
+import Diagrams.Align exposing (..)
+import Diagrams.FillStroke exposing (..)
+import Diagrams.FullWindow exposing (..)
 
 -- EXPR MODEL
 
@@ -40,27 +42,27 @@ keywordStyle = { defTextStyle | color = C.orange
 hSpacer = hspace 7
 
 keyword : String -> Diagram t a
-keyword kw = text kw keywordStyle
+keyword kw = text keywordStyle kw
 
 varDia : String -> Diagram t a
-varDia v = text v varStyle
+varDia v = text varStyle v
 
 -- VIEW
 
 view : Expr -> Diagram t a
 view expr =
   case expr of
-    IntLit x -> text (toString x) intLitStyle
-    FloatLit x -> text (toString x) floatLitStyle
-    StringLit s -> text ("\"" ++ s ++ "\"") stringLitStyle
+    IntLit x -> text intLitStyle (toString x)
+    FloatLit x -> text floatLitStyle (toString x)
+    StringLit s -> text stringLitStyle ("\"" ++ s ++ "\"")
     Variable name -> varDia name
-    Ap func args -> let comma = text "," defTextStyle
+    Ap func args -> let comma = text defTextStyle ","
                         argsViews = L.map view args
                         allArgs = hcat <| L.intersperse comma argsViews
                     in hcat [ view func
-                            , text "(" defTextStyle
+                            , text defTextStyle "("
                             , allArgs
-                            , text ")" defTextStyle
+                            , text defTextStyle ")"
                             ]
     IfExpr cond tbranch fbranch ->
         vcatA LeftA [ hcat [keyword "if", hSpacer, view cond]

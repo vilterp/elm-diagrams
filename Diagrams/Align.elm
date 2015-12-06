@@ -16,6 +16,7 @@ import List as L
 import Diagrams.Core exposing (..)
 import Diagrams.Geom exposing (..)
 import Diagrams.Envelope exposing (..)
+import Diagrams.Type exposing (..)
 
 -- Relative Positioning
 

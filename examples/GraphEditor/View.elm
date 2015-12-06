@@ -10,6 +10,7 @@ import Maybe as M
 import Debug
 
 import Diagrams.Core exposing (..)
+import Diagrams.Type exposing (..)
 import Diagrams.Align exposing (..)
 import Diagrams.Pad exposing (..)
 import Diagrams.Geom exposing (..)
@@ -39,32 +40,32 @@ defLine = C.defaultLine
 posNodeActions nodeId dragState =
     case dragState of
       Nothing -> { emptyActionSet | mouseDown = Just <| stopBubbling <|
-                                      \(MouseEvent evt) -> DragNodeStart { nodeId = nodeId, offset = evt.offset } }
+                                      \(MouseEvent evt) -> [DragNodeStart { nodeId = nodeId, offset = evt.offset }] }
       _ -> emptyActionSet
 
 -- BUG: click isn't working here
-nodeXOutActions nodeId = { emptyActionSet | click = Just <| keepBubbling <| always <| RemoveNode nodeId }
+nodeXOutActions nodeId = { emptyActionSet | click = Just <| keepBubbling <| always <| [RemoveNode nodeId] }
 
-edgeXOutActions edge = { emptyActionSet | click = Just <| keepBubbling <| always <| RemoveEdge edge }
+edgeXOutActions edge = { emptyActionSet | click = Just <| keepBubbling <| always <| [RemoveEdge edge] }
 
 canvasActions dragState =
-    let dragMove = { emptyActionSet | mouseMove = Just <| stopBubbling <| \(MouseEvent evt) -> DragMove evt.offset
-                                    , mouseUp = Just <| stopBubbling <| always DragEnd }
+    let dragMove = { emptyActionSet | mouseMove = Just <| stopBubbling <| \(MouseEvent evt) -> [DragMove evt.offset]
+                                    , mouseUp = Just <| stopBubbling <| always [DragEnd] }
     in case dragState of
          Nothing -> emptyActionSet
          _ -> dragMove
 
 outPortActions : PortId -> ActionSet Tag Action
 outPortActions portId = { emptyActionSet | mouseDown = Just <| stopBubbling <|
-                                              \evt -> DragEdgeStart { fromPort = portId
-                                                                    , endPos = M.withDefault (0,0) <| mousePosAtPath evt [Canvas]
-                                                                    } }
+                                              \evt -> [ DragEdgeStart { fromPort = portId
+                                                                      , endPos = M.withDefault (0,0) <| mousePosAtPath evt [Canvas]
+                                                                      } ] }
 
 inPortActions : PortId -> Maybe DraggingState -> ActionSet Tag Action
 inPortActions portId dragState =
     case dragState of
       Just (DraggingEdge attrs) -> { emptyActionSet | mouseUp = Just <| stopBubbling <|
-                                                        always <| AddEdge { from = attrs.fromPort, to = portId } }
+                                                        always <| [AddEdge { from = attrs.fromPort, to = portId }] }
       _ -> emptyActionSet
 
 -- views
@@ -82,12 +83,12 @@ viewPosNode dState pn = move pn.pos <| tagWithActions (NodeIdT pn.id) (posNodeAc
 viewNode : Node -> NodeId -> Maybe DraggingState -> Diagram Tag Action
 viewNode node nodeId dState =
    let -- top row
-       title = text node.title titleStyle
+       title = text titleStyle node.title
        xOut = tagWithActions XOut (nodeXOutActions nodeId) <| xGlyph
        titleRow = flexCenter title xOut
        -- ports
        portCirc = circle 7 (justFill <| Solid Color.yellow)
-       label lbl = text lbl T.defaultStyle
+       label lbl = text T.defaultStyle lbl
        -- in ports
        inSlot lbl = flexRight <| hcat [tagWithActions (InPortT lbl) (inPortActions (nodeId, lbl) dState) <| portCirc, hspace 5, label lbl]
        inSlots = L.map inSlot node.inPorts

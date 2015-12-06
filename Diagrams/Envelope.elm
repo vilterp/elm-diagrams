@@ -1,6 +1,6 @@
 module Diagrams.Envelope
-    ( envelope, width, height, boundingBox )
-    where
+    ( envelope, width, height, boundingBox
+    ) where
 
 {-|
 @docs envelope, width, height, boundingBox
@@ -13,6 +13,7 @@ import Maybe as M
 import Diagrams.Core exposing (..)
 import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
+import Diagrams.Type exposing (..)
 
 {-| Given a diagram and a Direction, return the distance in that direction from the origin
 to the closest line perpendicular to that direction which doesn't intersect the content of

@@ -20,7 +20,9 @@ Mailboxes to push out updates)
 @docs RenderFunc, UpdateFunc
 
 # Interaction
-@docs InteractionState, MouseState, initInteractState, interactFold, update, updateModel
+@docs InteractionState, MouseState, initInteractState
+@docs initMouseState, interactFold, update, updateModel
+@docs processMouseEvent
 
 -}
 
@@ -34,6 +36,7 @@ import Graphics.Element as E
 import Graphics.Collage as C
 
 import Diagrams.Core exposing (..)
+import Diagrams.Type exposing (..)
 import Diagrams.Query exposing (..)
 import Diagrams.Geom exposing (..)
 import Diagrams.Actions exposing (..)
@@ -49,6 +52,7 @@ type alias MouseState t a =
     }
 
 {-|-}
+initMouseState : MouseState t a
 initMouseState =
     { isDown = False
     , overPickedTags = []

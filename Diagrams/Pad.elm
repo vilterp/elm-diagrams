@@ -15,6 +15,7 @@ import Diagrams.Align exposing (..)
 import Diagrams.Envelope exposing (..)
 import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
+import Diagrams.Type exposing (..)
 
 -- TODO: better name...?
 {-| Given four numbers up, down, left, and right, put an invisible spacer

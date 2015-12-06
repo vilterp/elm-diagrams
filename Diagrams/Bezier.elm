@@ -11,6 +11,7 @@ import List as L
 
 import Diagrams.Core exposing (..)
 import Diagrams.Geom exposing (..)
+import Diagrams.Type exposing (..)
 
 -- TODO: replace this entire module/approach with builtin arcs...
 

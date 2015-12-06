@@ -13,6 +13,7 @@ import List as L
 
 -- whoooo all the moduless
 import Diagrams.Core exposing (..)
+import Diagrams.Type exposing (..)
 import Diagrams.Query exposing (..)
 import Diagrams.Interact exposing (..)
 import Diagrams.Wiring exposing (..)
@@ -23,6 +24,7 @@ import Diagrams.Pad exposing (..)
 import Diagrams.Actions exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.FullWindow exposing (..)
+
 
 type Tag = RectOrange
          | RectBlue
@@ -39,17 +41,17 @@ defLine = C.defaultLine
 testDia : Diagram Tag Action
 testDia = let aPath = path [(-50,-50), (30, 100)] C.defaultLine
               rectOrange = tagWithActions RectOrange
-                              { emptyActionSet | mouseEnter = Just <| keepBubbling <| (\(MouseEvent evt) -> EnterOrange evt.offset)
-                                               , mouseLeave = Just <| keepBubbling <| (\(MouseEvent evt) -> LeaveOrange evt.offset) }
+                              { emptyActionSet | mouseEnter = Just <| keepBubbling <| (\(MouseEvent evt) -> [EnterOrange evt.offset])
+                                               , mouseLeave = Just <| keepBubbling <| (\(MouseEvent evt) -> [LeaveOrange evt.offset]) }
                               <| rect 50 70 (fillAndStroke (Solid Color.orange) { defLine | width = 20, cap = C.Padded })
               rectBlue = tagWithActions RectBlue
-                              { emptyActionSet | mouseMove = Just <| keepBubbling <| (\(MouseEvent evt) -> MoveBlue evt.offset) }
+                              { emptyActionSet | mouseMove = Just <| keepBubbling <| (\(MouseEvent evt) -> [MoveBlue evt.offset]) }
                               <| rect 70 50 (justSolidFill Color.blue)
               rects = vcat [ rectOrange , rectBlue ]
               circ = tagWithActions Circ
-                            { emptyActionSet | click = Just <| keepBubbling <| (\(MouseEvent evt) -> ClickCirc evt.offset) }
+                            { emptyActionSet | click = Just <| keepBubbling <| (\(MouseEvent evt) -> [ClickCirc evt.offset]) }
                             <| circle 20 (fillAndStroke (Solid Color.yellow) { defLine | width = 2, cap = C.Padded })
-              justText = text "Foo" (let ds = T.defaultStyle in {ds | bold = True})
+              justText = text (let ds = T.defaultStyle in {ds | bold = True}) "Foo"
               someText = tag Textt <| background (justSolidFill Color.lightBlue) <| pad 5 <| justText
               stuff = circ `atop` (rectOrange `above` (rectBlue `beside` (circ `above` someText)))
               moreStuff = hcat <| L.intersperse circ (L.repeat 5 rectOrange)

@@ -26,6 +26,7 @@ import Diagrams.Core exposing (..)
 import Diagrams.Envelope exposing (..)
 import Diagrams.Align exposing (..)
 import Diagrams.Pad exposing (..)
+import Diagrams.Type exposing (..)
 
 type alias Width = Float
 
