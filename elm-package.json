@@ -1,5 +1,5 @@
 {
-    "version": "7.0.0",
+    "version": "7.1.0",
     "summary": "Combinators for layout, padding, etc, plus funcs to query coords and mouse over",
     "repository": "https://github.com/vilterp/elm-diagrams.git",
     "license": "BSD3",
