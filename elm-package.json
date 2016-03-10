@@ -19,7 +19,8 @@
         "Diagrams.Interact",
         "Diagrams.Pad",
         "Diagrams.Query",
-        "Diagrams.Wiring"
+        "Diagrams.Wiring",
+        "Diagrams.Type"
     ],
     "dependencies": {
         "elm-lang/core": "3.0.0 <= v < 4.0.0",

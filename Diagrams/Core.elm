@@ -63,32 +63,33 @@ import Color
 import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.Actions exposing (..)
-import Diagrams.Type exposing (..)
+import Diagrams.RealType exposing (..)
+import Diagrams.Type as Type
 
 -- constructors
 
 -- TODO: shouldn't fill style come first in these? I dunno
 
 {-| Circle with a given radius and fill, centered on the local origin. -}
-circle : Float -> FillStroke -> Diagram t a
+circle : Float -> FillStroke -> Type.Diagram t a
 circle = Circle
 
 {-| Rectangle with given width, height, and fill, centered on the local origin. -}
-rect : Float -> Float -> FillStroke -> Diagram t a
+rect : Float -> Float -> FillStroke -> Type.Diagram t a
 rect = Rect
 
 {-| Unclosed path made of this list of points, laid out relative to the local origin. -}
-path : List Point -> C.LineStyle -> Diagram t a
+path : List Point -> C.LineStyle -> Type.Diagram t a
 path points ls =
   Path points ls
 
 {-|-}
-polygon : List Point -> FillStroke -> Diagram t a
+polygon : List Point -> FillStroke -> Type.Diagram t a
 polygon points fs =
   Polygon points fs
 
 {-| Text with given style, centered vertically and horizontally on the local origin. -}
-text : T.Style -> String -> Diagram t a
+text : T.Style -> String -> Type.Diagram t a
 text style txt =
   let
     te =
@@ -97,36 +98,36 @@ text style txt =
     Text txt style te
 
 {-| Spacer with given width and height; renders as transparent. -}
-spacer : Float -> Float -> Diagram t a
+spacer : Float -> Float -> Type.Diagram t a
 spacer w h = rect w h invisible
 
 {-| Translate, rotate, or scale a given diagram. The transformed diagram has the
 same origin. -}
-transform : Transform -> Diagram t a -> Diagram t a
+transform : Transform -> Type.Diagram t a -> Type.Diagram t a
 transform = TransformD
 
 {-| Group a list of Diagrams in to one. Elements will be stacked with local origins
 on top of one another. This is the same as `zcat`. The first diagram in the list is on top. -}
-group : List (Diagram t a) -> Diagram t a
+group : List (Type.Diagram t a) -> Type.Diagram t a
 group = Group
 
 {-| Return a Tag node with the given Diagram as its sole child. Adding this to the 
 diagram tree is useful for picking and getting coordinates. -}
-tag : t -> Diagram t a -> Diagram t a
+tag : t -> Type.Diagram t a -> Type.Diagram t a
 tag t dia = Tag t emptyActionSet dia
 
 {-| Return a Tag node with the given Diagram as its sole child, holding both
 a tag and an action set. -}
-tagWithActions : t -> ActionSet t a -> Diagram t a -> Diagram t a
+tagWithActions : t -> ActionSet t a -> Type.Diagram t a -> Type.Diagram t a
 tagWithActions = Tag
 
 {-| equilateral triangle with given side length & fill/stroke style -}
-eqTriangle : Float -> FillStroke -> Diagram t a
+eqTriangle : Float -> FillStroke -> Type.Diagram t a
 eqTriangle sideLength fs = ngon 3 sideLength fs
 
 -- adapted from Graphics.Collage
 {-| regular polygon with number of sides, side length, & fill/stroke style -}
-ngon : Int -> Float -> FillStroke -> Diagram t a
+ngon : Int -> Float -> FillStroke -> Type.Diagram t a
 ngon n r fs =
   let m = toFloat n
       t = 2 * pi / m
@@ -136,29 +137,29 @@ ngon n r fs =
 -- basic transformations
 
 {-| Rotate the given diagram counterclockwise. Angle specified in radians. -}
-rotate : Float -> Diagram t a -> Diagram t a
+rotate : Float -> Type.Diagram t a -> Type.Diagram t a
 rotate r d = TransformD (Rotate r) d
 
 {-| Translate given diagram by (x, y). Origin of resulting diagram is the same. -}
-move : (Float, Float) -> Diagram t a -> Diagram t a
+move : (Float, Float) -> Type.Diagram t a -> Type.Diagram t a
 move (x, y) dia = TransformD (Translate x y) dia
 
 {-|-}
-moveX : Float -> Diagram t a -> Diagram t a
+moveX : Float -> Type.Diagram t a -> Type.Diagram t a
 moveX x = move (x, 0)
 
 {-|-}
-moveY : Float -> Diagram t a -> Diagram t a
+moveY : Float -> Type.Diagram t a -> Type.Diagram t a
 moveY y = move (0, y)
 
 {-|-}
-scale : Float -> Diagram t a -> Diagram t a
+scale : Float -> Type.Diagram t a -> Type.Diagram t a
 scale s d = TransformD (Scale s) d
 
 -- rendering
 
 {-|-}
-render : Diagram t a -> C.Form
+render : Type.Diagram t a -> C.Form
 render d =
   let
     handleFS fs shape =
@@ -203,21 +204,21 @@ render d =
 -- shortcuts
 
 {-|-}
-empty : Diagram t a
+empty : Type.Diagram t a
 empty = spacer 0 0
 
 {-| Vertical spacer of height h -}
-vspace : Float -> Diagram t a
+vspace : Float -> Type.Diagram t a
 vspace h = spacer 0 h
 
 {-| Horizontal spacer of width w -}
-hspace : Float -> Diagram t a
+hspace : Float -> Type.Diagram t a
 hspace w = spacer w 0
 
 {-| Vertical line of given height and line style -}
-vline : Float -> C.LineStyle -> Diagram t a
+vline : Float -> C.LineStyle -> Type.Diagram t a
 vline h ls = path [(0, h/2), (0, -h/2)] ls
 
 {-| Horizontal line of given width and line style -}
-hline : Float -> C.LineStyle -> Diagram t a
+hline : Float -> C.LineStyle -> Type.Diagram t a
 hline w ls = path [(-w/2, 0), (w/2, 0)] ls

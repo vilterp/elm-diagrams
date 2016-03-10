@@ -1,23 +1,11 @@
-module Diagrams.Type where
+module Diagrams.Type (Diagram) where
 
-import Graphics.Element as E
-import Graphics.Collage as C
-import Text as T
+{-|
+@docs Diagram
+-}
 
-import Diagrams.FillStroke exposing (..)
-import Diagrams.Geom exposing (..)
-import Diagrams.Actions exposing (..)
+import Diagrams.RealType
 
-type Diagram t a
-    -- primitives
-    = Circle Float FillStroke
-    | Rect Float Float FillStroke
-    | Polygon (List Point) FillStroke
-    | Path (List Point) C.LineStyle
-    | Text String T.Style E.Element
-    -- transformation
-    | TransformD Transform (Diagram t a)
-    -- group
-    | Group (List (Diagram t a))
-    -- tag
-    | Tag t (ActionSet t a) (Diagram t a)
+{-| A diagram. See `Diagrams.Core` for constructor functions. -}
+type alias Diagram t a =
+    Diagrams.RealType.Diagram t a

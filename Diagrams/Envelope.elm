@@ -13,7 +13,8 @@ import Maybe as M
 import Diagrams.Core exposing (..)
 import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
-import Diagrams.Type exposing (..)
+import Diagrams.Type as T
+import Diagrams.RealType exposing (..)
 
 {-| Given a diagram and a Direction, return the distance in that direction from the origin
 to the closest line perpendicular to that direction which doesn't intersect the content of
@@ -21,7 +22,7 @@ the diagram. See the [Haskell diagrams docs][hd] for a visual explanation.
 
  [hd]: http://projects.haskell.org/diagrams/doc/manual.html#envelopes-and-local-vector-spaces
 -}
-envelope : Direction -> Diagram t a -> Float
+envelope : Direction -> T.Diagram t a -> Float
 envelope dir dia =
     let
       handleBox w h borderWidth =
@@ -105,17 +106,17 @@ envelope dir dia =
           r + (halfStrokeWidth fs)
 
 {-|-}
-width : Diagram t a -> Float
+width : T.Diagram t a -> Float
 width d =
   (envelope Left d) + (envelope Right d)
 
 {-|-}
-height : Diagram t a -> Float
+height : T.Diagram t a -> Float
 height d =
   (envelope Up d) + (envelope Down d)
 
 {-| Box formed by taking the envelope in all directions. -}
-boundingBox : Diagram t a -> BBox
+boundingBox : T.Diagram t a -> BBox
 boundingBox dia =
   { up = envelope Up dia
   , down = envelope Down dia
