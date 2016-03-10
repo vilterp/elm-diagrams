@@ -17,10 +17,11 @@
         "Diagrams.FullWindow",
         "Diagrams.Geom",
         "Diagrams.Interact",
+        "Diagrams.Layout",
         "Diagrams.Pad",
         "Diagrams.Query",
-        "Diagrams.Wiring",
-        "Diagrams.Type"
+        "Diagrams.Type",
+        "Diagrams.Wiring"
     ],
     "dependencies": {
         "elm-lang/core": "3.0.0 <= v < 4.0.0",

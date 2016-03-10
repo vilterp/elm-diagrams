@@ -1,4 +1,9 @@
-module Diagrams.Layout where
+module Diagrams.Layout
+    ( FlexDiagram, Width, LayoutRow
+    , layout
+    , spring, block, expando, strut
+    , centered, flexLeft, flexRight, flexCenter, flexAll, hrule
+    ) where
 
 {-| A utility for laying out variable-width diagrams.
 
@@ -28,6 +33,7 @@ import Diagrams.Align exposing (..)
 import Diagrams.Pad exposing (..)
 import Diagrams.Type exposing (..)
 
+{-|-}
 type alias Width = Float
 
 {-| A diagram which can vary its width -- e.g. a spacer or a video
@@ -38,6 +44,7 @@ type FlexDiagram t a
               , render : Width -> Diagram t a
               }
 
+{-|-}
 type alias LayoutRow t a = List (FlexDiagram t a)
 
 -- layout
