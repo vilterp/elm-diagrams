@@ -41,7 +41,7 @@ type PickTree t a
 
 {-| Given a diagram and a point (e.g. of the mouse), return a `PickTree`, which represents
 what subtree of the diagram that point is currently over. -}
-pick : Diagram t a -> Point -> Maybe (PickTree t a)
+pick : T.Diagram t a -> Point -> Maybe (PickTree t a)
 pick diag point =
   let
     handleBox w h borderWidth =
