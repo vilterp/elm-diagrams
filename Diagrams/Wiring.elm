@@ -1,4 +1,4 @@
-module Diagrams.Wiring where
+module Diagrams.Wiring exposing (..)
 
 {-| Functions and types for getting a (possibly interactive) diagram onto the screen.
 
@@ -15,11 +15,11 @@ module Diagrams.Wiring where
 import Signal as S
 import Mouse
 import Window
-import Graphics.Collage as C
+import Collage as C
 
 import Diagrams.Geom exposing (..)
 
-{-| Position of a rectangle on the screen in which a diagram will be drawn (as a `Graphics.Collage`).
+{-| Position of a rectangle on the screen in which a diagram will be drawn (as a `Collage`).
 Offset is difference between top left of screen and top left of collage, increasing right and down. -}
 type alias CollageLocation =
   OffsetDimsBox

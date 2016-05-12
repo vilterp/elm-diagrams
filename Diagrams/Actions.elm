@@ -1,8 +1,8 @@
-module Diagrams.Actions
+module Diagrams.Actions exposing
     ( PickPath, PickPathElem, MouseEvent(..)
     , EventToAction, ActionSet, emptyActionSet, keepBubbling
     , stopBubbling, mousePosAtPath
-    ) where
+    )
 
 {-| ActionSets can be attached to diagrams with `Core.tagWithActions`, and used
 with module `Diagrams.Interact`. Build them with e.g.

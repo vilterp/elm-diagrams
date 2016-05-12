@@ -1,4 +1,4 @@
-module Diagrams.Type (Diagram) where
+module Diagrams.Type exposing (Diagram)
 
 {-|
 @docs Diagram

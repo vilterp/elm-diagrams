@@ -1,6 +1,4 @@
-module Diagrams.Query
-    ( PickTree(..), pick, getCoords, TagPath
-    ) where
+module Diagrams.Query exposing ( PickTree(..), pick, getCoords, TagPath )
 
 {-| Retreive information about laid-out diagrams.
 
@@ -13,7 +11,7 @@ module Diagrams.Query
 
 import List as L
 import Maybe as M
-import Graphics.Element as E
+import Element as E
 
 import Diagrams.Core exposing (..)
 import Diagrams.Geom exposing (..)

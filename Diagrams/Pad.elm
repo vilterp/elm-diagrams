@@ -1,4 +1,4 @@
-module Diagrams.Pad where
+module Diagrams.Pad exposing (..)
 
 {-| Surround diagrams with padding.
 
@@ -8,7 +8,7 @@ module Diagrams.Pad where
 -- TODO: maybe make this a little more like the CSS box model (border, padding, margin)
 -- and give it a name evocative of that
 
-import Graphics.Collage as C
+import Collage as C
 
 import Diagrams.Core exposing (..)
 import Diagrams.Align exposing (..)

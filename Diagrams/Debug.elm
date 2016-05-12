@@ -1,4 +1,4 @@
-module Diagrams.Debug where
+module Diagrams.Debug exposing (..)
 
 {-| Utilities for debugging alignment issues, etc.
 
@@ -6,7 +6,7 @@ module Diagrams.Debug where
 -}
 
 import Color
-import Graphics.Collage as C
+import Collage as C
 
 import Diagrams.Core exposing (..)
 import Diagrams.FillStroke exposing (..)

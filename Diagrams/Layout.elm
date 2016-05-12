@@ -1,4 +1,4 @@
-module Diagrams.Layout where
+module Diagrams.Layout exposing (..)
 
 {-| A utility for laying out variable-width diagrams.
 
@@ -18,7 +18,7 @@ TODO: generalize to vertical
 
 -}
 
-import Graphics.Collage as C
+import Collage as C
 import List as L
 import Maybe as M
 

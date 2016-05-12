@@ -1,4 +1,4 @@
-module Diagrams.Bezier (bezier) where
+module Diagrams.Bezier exposing (bezier)
 
 {-| Generate bezier paths as lists of points.
 Adapted from [this gist](https://gist.github.com/irrwitz/968b9762819974c92c9f).
@@ -6,7 +6,7 @@ Adapted from [this gist](https://gist.github.com/irrwitz/968b9762819974c92c9f).
 @docs bezier
 -}
 
-import Graphics.Collage as C
+import Collage as C
 import List as L
 
 import Diagrams.Core exposing (..)

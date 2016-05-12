@@ -1,12 +1,12 @@
-module Diagrams.Core
+module Diagrams.Core exposing
     ( circle, rect, path, polygon, text, spacer, transform
     , group, tag, tagWithActions, ngon, eqTriangle
     , move, moveX, moveY, scale, rotate
     , render
     , empty, vspace, hspace, vline, hline
-    ) where
+    )
 
-{-| Diagrams is a library built on top of `Graphics.Collage` which allows you to
+{-| Diagrams is a library built on top of `Collage` which allows you to
 construct graphics by laying out elements relative to each other.
 
 A Diagram is represented as a tree of elements, where the leaves are primitive
@@ -53,11 +53,11 @@ which exports everything is a good idea.
 
 -}
 
-import Graphics.Collage as C
-import Graphics.Element as E
+import Collage as C
+import Element as E
 import Text as T
 import List as L
-import Transform2D
+import Transform
 import Color
 
 import Diagrams.Geom exposing (..)
@@ -125,7 +125,7 @@ tagWithActions = Tag
 eqTriangle : Float -> FillStroke -> Type.Diagram t a
 eqTriangle sideLength fs = ngon 3 sideLength fs
 
--- adapted from Graphics.Collage
+-- adapted from Collage
 {-| regular polygon with number of sides, side length, & fill/stroke style -}
 ngon : Int -> Float -> FillStroke -> Type.Diagram t a
 ngon n r fs =

@@ -1,4 +1,4 @@
-module Diagrams.Align where
+module Diagrams.Align exposing (..)
 
 {-|
 # Relative Positioning

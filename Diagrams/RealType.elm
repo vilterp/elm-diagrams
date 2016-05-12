@@ -1,7 +1,7 @@
-module Diagrams.RealType where
+module Diagrams.RealType exposing (..)
 
-import Graphics.Element as E
-import Graphics.Collage as C
+import Element as E
+import Collage as C
 import Text as T
 
 import Diagrams.FillStroke exposing (..)
