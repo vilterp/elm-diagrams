@@ -88,22 +88,16 @@ testDia =
 type alias Model = ()
 
 
-view : Model -> Html a
-view _ =
-  testDia
-  |> Diagrams.render
-  |> (\a -> [a])
-  |> Collage.collage 800 800
-  |> Element.toHtml
-
-
-initModel : Model
-initModel = ()
+-- TODO: use window subscription
+dims =
+  { width = 800
+  , height = 800
+  }
 
 
 main =
   App.beginnerProgram
     { model = ()
-    , view = view
+    , view = always (Diagrams.toHtml dims testDia)
     , update = (\_ m -> m)
     }

@@ -2,9 +2,10 @@ module Diagrams.Core exposing
     ( circle, rect, path, polygon, text, spacer, transform
     , group, tag, tagWithActions, ngon, eqTriangle
     , move, moveX, moveY, scale, rotate
-    , render
+    , toForm, toHtml
     , empty, vspace, hspace, vline, hline
     )
+    -- where
 
 {-| Diagrams is a library built on top of `Collage` which allows you to
 construct graphics by laying out elements relative to each other.
@@ -46,7 +47,7 @@ which exports everything is a good idea.
 @docs move, moveX, moveY, scale, rotate
 
 # Rendering
-@docs render
+@docs toForm, toHtml
 
 # Composition Utilities
 @docs empty, vspace, hspace, vline, hline
@@ -59,6 +60,8 @@ import Text as T
 import List as L
 import Transform
 import Color
+
+import Html exposing (Html)
 
 import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
@@ -159,8 +162,8 @@ scale s d = TransformD (Scale s) d
 -- rendering
 
 {-|-}
-render : Type.Diagram t a -> C.Form
-render d =
+toForm : Type.Diagram t a -> C.Form
+toForm d =
   let
     handleFS fs shape =
       let filled =
@@ -180,16 +183,16 @@ render d =
  in
   case d of
     Tag _ _ dia ->
-      render dia
+      toForm dia
     Group dias ->
-      C.group <| L.map render <| L.reverse dias -- TODO: this seems semantically right; don't want to
+      C.group <| L.map toForm <| L.reverse dias -- TODO: this seems semantically right; don't want to
                                                             -- have to reverse tho
     TransformD (Scale s) dia ->
-      C.scale s <| render dia
+      C.scale s <| toForm dia
     TransformD (Rotate r) dia ->
-      C.rotate r <| render dia
+      C.rotate r <| toForm dia
     TransformD (Translate x y) dia ->
-      C.move (x, y) <| render dia
+      C.move (x, y) <| toForm dia
     Text str ts te ->
       C.text <| T.style ts <| T.fromString str
     Path path ls ->
@@ -200,6 +203,15 @@ render d =
       handleFS fs <| C.rect w h
     Circle r fs ->
       handleFS fs <| C.circle r
+
+
+toHtml : Dims -> Type.Diagram t a -> Html x
+toHtml dims dia =
+  dia
+  |> toForm
+  |> (\x -> [x])
+  |> C.collage (truncate dims.width) (truncate dims.height)
+  |> E.toHtml
 
 -- shortcuts
 
