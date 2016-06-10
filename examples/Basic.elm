@@ -24,7 +24,7 @@ import Diagrams.Align exposing (..)
 import Diagrams.Pad exposing (..)
 import Diagrams.Actions exposing (..)
 import Diagrams.FillStroke exposing (..)
---import Diagrams.FullWindow exposing (..)
+import Diagrams.FullWindow exposing (..)
 
 
 type Tag
@@ -88,19 +88,5 @@ testDia =
     --|> showOrigin
 
 
-type alias Model = ()
-
-
--- TODO: use window subscription
-dims =
-  { width = 800
-  , height = 800
-  }
-
-
 main =
-  App.beginnerProgram
-    { model = ()
-    , view = always (Diagrams.Svg.toHtml dims testDia)
-    , update = (\_ m -> m)
-    }
+  fullWindowProgram testDia

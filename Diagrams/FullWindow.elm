@@ -5,12 +5,13 @@ module Diagrams.FullWindow exposing (..)
 
 See `Diagrams.Wiring` docs for more info on `CollageLocation`s.
 
-@docs fullWindowCollageLocFunc, fullWindowCollageLoc, fullWindowUpdates, fullWindowMain, fullWindowView
+@docs fullWindowProgram
 -}
 
 import Window
 import Element as E
 import Collage as C
+import Task
 
 import Html.App as App
 
@@ -50,14 +51,31 @@ fullWindowView (w, h) d =
   C.collage w h [render d]
 -}
 
-fullWindowMain : Diagram t a -> Program Never
-fullWindowMain dia =
-  -- possible to render initially with window size?
-  App.program
-    { init = ({ width = 800, height = 800 }, Cmd.none)
-    , update = \newDims _ -> (newDims, Cmd.none)
-    , view = \dims -> Diagrams.Svg.toHtml dims dia
-    , subscriptions = \_ ->
-        Window.resizes
-          (\{width, height} -> { width = toFloat width, height = toFloat height })
-    }
+
+{-| The easiest way to get a diagram on the screen:
+
+    main = fullWindowProgram (rect 10 10 (justFill <| Solid Color.orange))
+-}
+fullWindowProgram : Diagram t a -> Program Never
+fullWindowProgram dia =
+  let
+    initialDims =
+      { width = 800
+      , height = 800
+      }
+
+    toFloatDims size =
+      { width = toFloat size.width
+      , height = toFloat size.height
+      }
+  in
+    App.program
+      { init =
+          ( initialDims
+            -- ugh this is a Task Never; which I didn't have to tag it
+          , Task.perform (always initialDims) toFloatDims Window.size
+          )
+      , update = \newDims _ -> (newDims, Cmd.none)
+      , view = \dims -> Diagrams.Svg.toHtml dims dia
+      , subscriptions = \_ -> Window.resizes toFloatDims
+      }
