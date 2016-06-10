@@ -9,14 +9,17 @@ See `Diagrams.Wiring` docs for more info on `CollageLocation`s.
 -}
 
 import Window
-import Signal as S
 import Element as E
 import Collage as C
 
-import Diagrams.Wiring exposing (..)
+import Html.App as App
+
+--import Diagrams.Wiring exposing (..)
+import Diagrams.Svg
 import Diagrams.Core exposing (..)
 import Diagrams.Type exposing (..)
 
+{-
 {-| A location function which always returns a `CollageLocation` in the middle of the window,
 filling the whole window. -}
 fullWindowCollageLocFunc : CollageLocFunc
@@ -45,3 +48,16 @@ fullWindowMain dia =
 fullWindowView : (Int, Int) -> Diagram t a -> E.Element
 fullWindowView (w, h) d =
   C.collage w h [render d]
+-}
+
+fullWindowMain : Diagram t a -> Program Never
+fullWindowMain dia =
+  -- possible to render initially with window size?
+  App.program
+    { init = ({ width = 800, height = 800 }, Cmd.none)
+    , update = \newDims _ -> (newDims, Cmd.none)
+    , view = \dims -> Diagrams.Svg.toHtml dims dia
+    , subscriptions = \_ ->
+        Window.resizes
+          (\{width, height} -> { width = toFloat width, height = toFloat height })
+    }

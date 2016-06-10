@@ -5,14 +5,9 @@ import Diagrams.Core exposing (..)
 import Diagrams.Type exposing (..)
 import Diagrams.Align exposing (..)
 import Diagrams.FillStroke exposing (..)
-import Diagrams.Svg
---import Diagrams.FullWindow exposing (..)
+import Diagrams.FullWindow exposing (..)
 import Diagrams.Debug exposing (..)
 import Color
-
-import Window
-import Html.App as App
-import Html exposing (..)
 
 
 sierpinski : Int -> Float -> Diagram t a
@@ -35,20 +30,6 @@ sierpinski n sl =
 main =
   sierpinski 3 20
   |> fullWindowMain
-
-
-
-fullWindowMain : Diagram t a -> Program Never
-fullWindowMain dia =
-  App.program
-    { init = ({ width = 800, height = 800 }, Cmd.none)
-    , update = \newDims _ -> (newDims, Cmd.none)
-    , view = \dims -> Diagrams.Svg.toHtml dims dia
-    --, view = \_ -> Html.text "sup"
-    , subscriptions = \_ ->
-        Window.resizes
-          (\{width, height} -> { width = toFloat width, height = toFloat height })
-    }
 
 
 -- fullWindowMain <| showOrigin <| showBBox <| alignCenter <| sierpinski 3 20
