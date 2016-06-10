@@ -1,23 +1,57 @@
-module Test where
+module Test exposing (..)
+-- where
 
 import Diagrams.Core exposing (..)
+import Diagrams.Type exposing (..)
 import Diagrams.Align exposing (..)
 import Diagrams.FillStroke exposing (..)
-import Diagrams.FullWindow exposing (..)
+import Diagrams.Svg
+--import Diagrams.FullWindow exposing (..)
 import Diagrams.Debug exposing (..)
 import Color
-import Signal
-import Time
-import Window
 
-sierpinski n sl = case n of
-                    0 -> eqTriangle sl (justSolidFill Color.blue)
-                    _ -> let smaller = sierpinski (n-1) sl
-                         in alignCenter <| smaller `above`
-                                          (alignCenter <| smaller `beside` smaller)
+import Window
+import Html.App as App
+import Html exposing (..)
+
+
+sierpinski : Int -> Float -> Diagram t a
+sierpinski n sl =
+  case n of
+    0 ->
+      eqTriangle sl (justSolidFill Color.blue)
+
+    _ ->
+      let
+        smaller =
+          sierpinski (n-1) sl
+      in
+        smaller `above`
+        (alignCenter <| smaller `beside` smaller)
+        |> alignCenter
+
 
 -- not spinning
-main = fullWindowMain <| showOrigin <| showBBox <| alignCenter <| sierpinski 3 20
+main =
+  sierpinski 3 20
+  |> fullWindowMain
+
+
+
+fullWindowMain : Diagram t a -> Program Never
+fullWindowMain dia =
+  App.program
+    { init = ({ width = 800, height = 800 }, Cmd.none)
+    , update = \newDims _ -> (newDims, Cmd.none)
+    , view = \dims -> Diagrams.Svg.toHtml dims dia
+    --, view = \_ -> Html.text "sup"
+    , subscriptions = \_ ->
+        Window.resizes
+          (\{width, height} -> { width = toFloat width, height = toFloat height })
+    }
+
+
+-- fullWindowMain <| showOrigin <| showBBox <| alignCenter <| sierpinski 3 20
 
 -- spinning
 --main = let sier = sierpinski 5 10

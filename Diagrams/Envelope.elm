@@ -1,4 +1,5 @@
 module Diagrams.Envelope exposing ( envelope, width, height, boundingBox )
+-- where
 
 {-|
 @docs envelope, width, height, boundingBox

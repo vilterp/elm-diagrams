@@ -20,8 +20,10 @@
         "Diagrams.Type"
     ],
     "dependencies": {
+        "elm-community/list-extra": "2.0.0 <= v < 3.0.0",
         "elm-lang/core": "4.0.0 <= v < 5.0.0",
         "elm-lang/html": "1.0.0 <= v < 2.0.0",
+        "elm-lang/svg": "1.0.0 <= v < 2.0.0",
         "elm-lang/window": "1.0.0 <= v < 2.0.0",
         "evancz/elm-graphics": "1.0.0 <= v < 2.0.0"
     },

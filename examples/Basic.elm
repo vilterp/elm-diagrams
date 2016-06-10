@@ -15,6 +15,7 @@ import Text as T
 import Diagrams.Core as Diagrams exposing (..)
 import Diagrams.Type exposing (..)
 import Diagrams.Query exposing (..)
+import Diagrams.Svg
 --import Diagrams.Interact exposing (..)
 --import Diagrams.Wiring exposing (..)
 import Diagrams.Geom exposing (..)
@@ -52,7 +53,8 @@ testDia =
       tagWithActions RectOrange
         { emptyActionSet | mouseEnter = Just <| keepBubbling <| (\(MouseEvent evt) -> [EnterOrange evt.offset])
                          , mouseLeave = Just <| keepBubbling <| (\(MouseEvent evt) -> [LeaveOrange evt.offset]) }
-        <| rect 50 70 (fillAndStroke (Solid Color.orange) { defLine | width = 20, cap = Collage.Padded })
+        --<| rect 50 70 (fillAndStroke (Solid Color.orange) { defLine | width = 20, cap = Collage.Padded })
+        <| rect 50 70 (justFill (Solid Color.orange))
 
     rectBlue =
       tagWithActions RectBlue
@@ -79,10 +81,11 @@ testDia =
     moreStuff =
       hcat <| List.intersperse circ (List.repeat 5 rectOrange)
   in
-    stuff `above` stuff `above` moreStuff
+    --stuff `above` stuff `above` moreStuff
+    (rectOrange `above` rectBlue)
     |> alignCenter
-    |> showBBox
-    |> showOrigin
+    --|> showBBox
+    --|> showOrigin
 
 
 type alias Model = ()
@@ -98,6 +101,6 @@ dims =
 main =
   App.beginnerProgram
     { model = ()
-    , view = always (Diagrams.toHtml dims testDia)
+    , view = always (Diagrams.Svg.toHtml dims testDia)
     , update = (\_ m -> m)
     }

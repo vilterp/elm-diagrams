@@ -4,6 +4,7 @@ module Diagrams.Interact exposing
     , initInteractState, interactFold, update, updateModel, initMouseState
     , processMouseEvent
     )
+    -- where
 
 {-| An abstraction for making diagrams which change as a function of the mouse.
 

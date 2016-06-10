@@ -62,6 +62,7 @@ import Transform
 import Color
 
 import Html exposing (Html)
+import List.Extra
 
 import Diagrams.Geom exposing (..)
 import Diagrams.FillStroke exposing (..)
@@ -204,12 +205,12 @@ toForm d =
     Circle r fs ->
       handleFS fs <| C.circle r
 
-
+{-|-}
 toHtml : Dims -> Type.Diagram t a -> Html x
 toHtml dims dia =
   dia
   |> toForm
-  |> (\x -> [x])
+  |> List.Extra.singleton
   |> C.collage (truncate dims.width) (truncate dims.height)
   |> E.toHtml
 

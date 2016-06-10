@@ -1,4 +1,5 @@
 module Diagrams.Wiring exposing (..)
+-- where
 
 {-| Functions and types for getting a (possibly interactive) diagram onto the screen.
 

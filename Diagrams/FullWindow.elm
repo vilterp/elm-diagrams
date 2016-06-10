@@ -1,4 +1,5 @@
 module Diagrams.FullWindow exposing (..)
+-- where
 
 {-| Utilities for when you just want to get a diagram on the whole screen.
 
