@@ -6,6 +6,7 @@ import Svg exposing (Svg)
 import Html exposing (Html)
 import Svg.Attributes as SvgA
 import Color exposing (Color)
+import Element as E
 
 import List.Extra
 import Collage
@@ -38,7 +39,8 @@ toSvg d =
       fillStroke
       |> getFillColor
       |> Maybe.map (\color -> SvgA.fill (colorToCss color))
-      |> maybeToList
+      |> Maybe.withDefault (SvgA.fill "none")
+      |> List.Extra.singleton
 
     fromLineStyle : Collage.LineStyle -> List (Svg.Attribute a)
     fromLineStyle lineStyle =
@@ -85,17 +87,30 @@ toSvg d =
         dia
         |> toSvg
         |> List.Extra.singleton
-        |> Svg.g []
+        |> Svg.g [ SvgA.transform ("rotate(" ++ toString (lerp (0, 360) (0, pi * 2) r) ++ ")") ]
 
       TransformD (Translate x y) dia ->
         dia
         |> toSvg
         |> List.Extra.singleton
-        |> Svg.g [ SvgA.transform ("translate(" ++ toString x ++ " " ++ toString y ++ ")") ]
+        |> Svg.g [ SvgA.transform ("translate(" ++ toString x ++ " " ++ toString (-y) ++ ")") ]
 
       Text str ts te ->
-        -- TODO: styling  
-        Svg.text' [] [Svg.text str]
+        let
+          negativeHalfToString x =
+            (toFloat x) / 2
+            |> toString
+        in
+          Svg.text'
+            [ SvgA.fill (colorToCss ts.color)
+            , SvgA.fontWeight (if ts.bold then "bold" else "normal")
+            , SvgA.fontStyle (if ts.italic then "italic" else "normal")
+            , SvgA.fontSize (ts.height |> Maybe.withDefault 14 |> toString)
+            , SvgA.transform
+                ("translate(" ++
+                  ((E.widthOf te |> toFloat) / -2 |> toString) ++ " 0)")
+            ]
+            [Svg.text str]
 
       Path path ls ->
         Svg.polyline
@@ -116,7 +131,9 @@ toSvg d =
       Rect w h fs ->
         Svg.rect
           (List.concat
-            [ [ SvgA.width (toString w), SvgA.height (toString h) ]
+            [ [ SvgA.width (toString w)
+              , SvgA.height (toString h)
+              , SvgA.transform ("translate(" ++ toString (-w/2) ++ " " ++ toString (-h/2) ++ ")") ]
             , getFillStrokeAttrs fs
             ])
           []
@@ -151,14 +168,6 @@ toHtml dims dia =
               ++ toString dims.width ++ " "
               ++ toString dims.height)
         ]
-
-
--- why tf is this not in list-extra
-maybeToList : Maybe a -> List a
-maybeToList maybe =
-  maybe
-  |> Maybe.map List.Extra.singleton
-  |> Maybe.withDefault []
 
 
 -- this should also be in some library

@@ -29,8 +29,8 @@ beside a b =
   let xTrans = (envelope Right a) + (envelope Left b)
   in Group [a, TransformD (Translate xTrans 0) b]
 
-{-| Given two diagrams a and b, place b to the right of a, such that their origins
-are on a horizontal line and their envelopes touch. The origin of the new diagram
+{-| Given two diagrams a and b, place a above b, such that their origins
+are on a vertical line and their envelopes touch. The origin of the new diagram
 is the origin of a. -}
 above : T.Diagram t a -> T.Diagram t a -> T.Diagram t a
 above a b =

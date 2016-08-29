@@ -23,86 +23,86 @@ the diagram. See the [Haskell diagrams docs][hd] for a visual explanation.
 -}
 envelope : Direction -> T.Diagram t a -> Float
 envelope dir dia =
-    let
-      handleBox w h borderWidth =
-        let base = case dir of
-                     Up -> h/2
-                     Down -> h/2
-                     Left -> w/2
-                     Right -> w/2
-        in base + borderWidth
+  let
+    handleBox w h borderWidth =
+      let base = case dir of
+                   Up -> h/2
+                   Down -> h/2
+                   Left -> w/2
+                   Right -> w/2
+      in base + borderWidth
 
-      handlePath path =
+    handlePath path =
+      let
+        xs = L.map fst path
+        ys = L.map snd path
+      in
+        case dir of
+          Left -> -(def0 <| L.minimum xs)
+          Right -> def0 <| L.maximum xs
+          Up -> def0 <| L.maximum ys
+          Down -> -(def0 <| L.minimum ys)
+  in
+    case dia of
+      Tag _ _ dia' ->
+        envelope dir dia'
+
+      Group dias ->
+        case dias of -- TODO: cache
+          [] -> 0
+          _ -> def0 <| L.maximum <| L.map (envelope dir) dias
+
+      TransformD (Scale s) diag ->
+        s * (envelope dir diag)
+
+      TransformD (Rotate r) rotDia ->
+          case rotDia of
+            -- TODO: DRY
+            Path points fs ->
+              let
+                newPoints =
+                  L.map (applyTrans <| Rotate r) points
+              in
+                envelope dir <| Path newPoints fs
+
+            Polygon points ls ->
+              let
+                newPoints =
+                  L.map (applyTrans <| Rotate r) points
+              in
+                envelope dir <| Polygon newPoints ls
+
+            Circle _ _ ->
+              envelope dir rotDia
+
+            _ ->
+              Debug.crash "TODO"
+            -- TODO: handleBox for rect, text
+      TransformD (Translate tx ty) diag ->
         let
-          xs = L.map fst path
-          ys = L.map snd path
+          env =
+            envelope dir diag
         in
           case dir of
-            Left -> -(def0 <| L.minimum xs)
-            Right -> def0 <| L.maximum xs
-            Up -> def0 <| L.maximum ys
-            Down -> -(def0 <| L.minimum ys)
-    in
-      case dia of
-        Tag _ _ dia' ->
-          envelope dir dia'
+            Up -> max 0 <| env + ty
+            Down -> max 0 <| env - ty
+            Right -> max 0 <| env + tx
+            Left -> max 0 <| env - tx
 
-        Group dias ->
-          case dias of -- TODO: cache
-            [] -> 0
-            _ -> def0 <| L.maximum <| L.map (envelope dir) dias
+      Text str ts te ->
+        handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
 
-        TransformD (Scale s) diag ->
-          s * (envelope dir diag)
+      Path points fs ->
+        handlePath points
 
-        TransformD (Rotate r) rotDia ->
-            case rotDia of
-              -- TODO: DRY
-              Path points fs ->
-                let
-                  newPoints =
-                    L.map (applyTrans <| Rotate r) points
-                in
-                  envelope dir <| Path newPoints fs
+      Polygon points fs ->
+        handlePath points
 
-              Polygon points ls ->
-                let
-                  newPoints =
-                    L.map (applyTrans <| Rotate r) points
-                in
-                  envelope dir <| Polygon newPoints ls
+      Rect w h fs ->
+        handleBox w h (halfStrokeWidth fs)
 
-              Circle _ _ ->
-                envelope dir rotDia
-
-              _ ->
-                Debug.crash "TODO"
-              -- TODO: handleBox for rect, text
-        TransformD (Translate tx ty) diag ->
-          let
-            env =
-              envelope dir diag
-          in
-            case dir of
-              Up -> max 0 <| env + ty
-              Down -> max 0 <| env - ty
-              Right -> max 0 <| env + tx
-              Left -> max 0 <| env - tx
-
-        Text str ts te ->
-          handleBox (toFloat <| E.widthOf te) (toFloat <| E.heightOf te) 0
-
-        Path points fs ->
-          handlePath points
-
-        Polygon points fs ->
-          handlePath points
-
-        Rect w h fs ->
-          handleBox w h (halfStrokeWidth fs)
-
-        Circle r fs ->
-          r + (halfStrokeWidth fs)
+      Circle r fs ->
+        r + (halfStrokeWidth fs)
 
 {-|-}
 width : T.Diagram t a -> Float

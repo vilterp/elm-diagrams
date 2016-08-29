@@ -1,4 +1,4 @@
-module Tooltip where
+module Tooltip exposing (..)
 
 import Diagrams.Core exposing (..)
 import Diagrams.Type exposing (..)
@@ -42,4 +42,4 @@ main =
       |> L.intersperse (hspace 10)
       |> hcat
       |> alignCenter
-      |> fullWindowMain
+      |> fullWindowProgram

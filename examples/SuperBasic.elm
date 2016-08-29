@@ -28,7 +28,18 @@ import Diagrams.FillStroke exposing (..)
 
 
 testDia =
-    Diagrams.circle 20 (justSolidFill Color.blue)
+  vcat
+    [ Diagrams.circle 20 (justSolidFill Color.blue)
+    , Diagrams.circle 20 (justSolidFill Color.orange)
+    ]
+  |> showOrigin
+  |> showBBox
+
+
+--testDia = 
+--  rect 100 20 (justSolidFill Color.blue)
+--  |> showBBox
+--  |> showOrigin
 
 
 type alias Model = ()
