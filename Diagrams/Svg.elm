@@ -62,7 +62,7 @@ toSvg d =
     pathToString : List Point -> String
     pathToString points =
       points
-      |> List.map (\(x, y) -> toString x ++ "," ++ toString y)
+      |> List.map (\(x, y) -> toString x ++ "," ++ toString -y)
       |> String.join ","
   in
     case d of
