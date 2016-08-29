@@ -29,7 +29,7 @@ sierpinski n sl =
 -- not spinning
 main =
   sierpinski 3 20
-  |> fullWindowProgram
+  |> fullWindowShow
 
 
 -- fullWindowMain <| showOrigin <| showBBox <| alignCenter <| sierpinski 3 20

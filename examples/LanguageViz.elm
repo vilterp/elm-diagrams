@@ -1,8 +1,5 @@
-module LanguageViz where
+module LanguageViz exposing (..)
 
-import Window
-import Mouse
-import Signal as S
 import List as L
 import Text as T
 import Color as C
@@ -93,4 +90,4 @@ expr = LetExpr [ ("foo", IntLit 62)
 
 dia = alignCenter <| view expr
 
-main = fullWindowMain dia
+main = fullWindowShow dia

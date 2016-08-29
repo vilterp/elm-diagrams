@@ -13,12 +13,13 @@ import Element as E
 import Collage as C
 import Task
 
-import Html.App as App
+import Html.App
 
 --import Diagrams.Wiring exposing (..)
 import Diagrams.Svg
 import Diagrams.Core exposing (..)
 import Diagrams.Type exposing (..)
+import Diagrams.Geom exposing (Dims)
 
 {-
 {-| A location function which always returns a `CollageLocation` in the middle of the window,
@@ -56,8 +57,14 @@ fullWindowView (w, h) d =
 
     main = fullWindowProgram (rect 10 10 (justFill <| Solid Color.orange))
 -}
-fullWindowProgram : Diagram t a -> Program Never
-fullWindowProgram dia =
+
+type Msg a
+  = DiagramMsg a
+  | Resize Dims
+
+
+fullWindowProgram : { view : m -> Diagram t a, model : m, update : a -> m -> m } -> Program Never
+fullWindowProgram app =
   let
     initialDims =
       { width = 800
@@ -65,17 +72,31 @@ fullWindowProgram dia =
       }
 
     toFloatDims size =
-      { width = toFloat size.width
-      , height = toFloat size.height
-      }
+      Resize
+        { width = toFloat size.width
+        , height = toFloat size.height
+        }
+
+    update msg (dims, state) =
+      case msg of
+        DiagramMsg dMsg ->
+          ((dims, app.update dMsg state), Cmd.none)
+
+        Resize newDims ->
+          ((newDims, state), Cmd.none)
   in
-    App.program
+    Html.App.program
       { init =
-          ( initialDims
+          ( (initialDims, app.model)
             -- ugh this is a Task Never; which I didn't have to tag it
-          , Task.perform (always initialDims) toFloatDims Window.size
+          , Task.perform (always (Resize initialDims)) toFloatDims Window.size
           )
-      , update = \newDims _ -> (newDims, Cmd.none)
-      , view = \dims -> Diagrams.Svg.toHtml dims dia
+      , update = update
+      , view = \(dims, state) -> Diagrams.Svg.toHtml dims (app.view state) |> Html.App.map DiagramMsg
       , subscriptions = \_ -> Window.resizes toFloatDims
       }
+
+
+fullWindowShow : Diagram t a -> Program Never
+fullWindowShow dia =
+  fullWindowProgram { view = always dia, model = (), update = \_ _ -> () }

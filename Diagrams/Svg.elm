@@ -16,7 +16,7 @@ import Diagrams.RealType as Type exposing (..)
 import Diagrams.FillStroke exposing (..)
 
 
-toSvg : Type.Diagram t a -> Svg b
+toSvg : Type.Diagram t a -> Svg a
 toSvg d =
   let
     -- TODO: move these helpers out?
@@ -87,7 +87,7 @@ toSvg d =
         dia
         |> toSvg
         |> List.Extra.singleton
-        |> Svg.g [ SvgA.transform ("rotate(" ++ toString (lerp (0, 360) (0, pi * 2) r) ++ ")") ]
+        |> Svg.g [ SvgA.transform ("rotate(" ++ toString (lerp (0, 360) (0, pi * 2) -r) ++ ")") ]
 
       TransformD (Translate x y) dia ->
         dia
@@ -147,7 +147,7 @@ toSvg d =
           []
 
 
-toHtml : Dims -> Type.Diagram t a -> Html b
+toHtml : Dims -> Type.Diagram t a -> Html a
 toHtml dims dia =
   let
     minX =

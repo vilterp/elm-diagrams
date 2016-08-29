@@ -24,7 +24,7 @@ import Diagrams.Align exposing (..)
 import Diagrams.Pad exposing (..)
 import Diagrams.Actions exposing (..)
 import Diagrams.FillStroke exposing (..)
---import Diagrams.FullWindow exposing (..)
+import Diagrams.FullWindow exposing (..)
 
 
 testDia =
@@ -53,8 +53,4 @@ dims =
 
 
 main =
-  App.beginnerProgram
-    { model = ()
-    , view = always (Diagrams.Svg.toHtml dims testDia)
-    , update = (\_ m -> m)
-    }
+  testDia |> fullWindowShow
