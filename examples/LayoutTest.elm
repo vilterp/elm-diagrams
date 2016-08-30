@@ -1,4 +1,4 @@
-module LayoutTest where
+module LayoutTest exposing (..)
 
 import Color
 import List as L
@@ -25,4 +25,4 @@ allRows = [topRow] ++ inPorts ++ [centered <| rect 30 20 greenFill] ++ outPorts
 
 dia = layout allRows
 
-main = fullWindowMain dia
+main = fullWindowShow dia

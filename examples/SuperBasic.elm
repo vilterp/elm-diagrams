@@ -16,8 +16,7 @@ import Diagrams.Core as Diagrams exposing (..)
 import Diagrams.Type exposing (..)
 import Diagrams.Query exposing (..)
 import Diagrams.Svg
---import Diagrams.Interact exposing (..)
---import Diagrams.Wiring exposing (..)
+
 import Diagrams.Geom exposing (..)
 import Diagrams.Debug exposing (..)
 import Diagrams.Align exposing (..)
@@ -25,21 +24,27 @@ import Diagrams.Pad exposing (..)
 import Diagrams.Actions exposing (..)
 import Diagrams.FillStroke exposing (..)
 import Diagrams.FullWindow exposing (..)
+import Diagrams.Actions exposing (..)
 
 
-testDia =
+type Tag
+  = Foo
+
+
+type Msg
+  = FooMsg
+
+
+view : Int -> Diagram Tag Msg
+view x =
   vcat
     [ Diagrams.circle 20 (justSolidFill Color.blue)
+      |> tagWithActions Foo { emptyActionSet | click = Just (\evt -> ([FooMsg], True)) }
     , Diagrams.circle 20 (justSolidFill Color.orange)
+    , Diagrams.text T.defaultStyle (toString x)
     ]
   |> showOrigin
   |> showBBox
-
-
---testDia = 
---  rect 100 20 (justSolidFill Color.blue)
---  |> showBBox
---  |> showOrigin
 
 
 type alias Model = ()
@@ -53,4 +58,8 @@ dims =
 
 
 main =
-  testDia |> fullWindowShow
+  fullWindowProgram
+    { view = view
+    , update = \FooMsg x -> x + 1
+    , model = 0
+    }
