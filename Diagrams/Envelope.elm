@@ -1,8 +1,8 @@
-module Diagrams.Envelope exposing ( envelope, width, height, boundingBox )
+module Diagrams.Envelope exposing ( envelope, width, height, boundingBox, dims )
 -- where
 
 {-|
-@docs envelope, width, height, boundingBox
+@docs envelope, width, height, boundingBox, dims
 -}
 
 import List as L
@@ -122,6 +122,17 @@ boundingBox dia =
   , left = envelope Left dia
   , right = envelope Right dia
   }
+
+{-|-}
+dims : T.Diagram t a -> Dims
+dims dia =
+  let
+    bbox =
+      boundingBox dia
+  in
+    { width = bbox.left + bbox.right
+    , height = bbox.up + bbox.down
+    }
 
 def0 : Maybe number -> number
 def0 m =
