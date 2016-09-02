@@ -104,8 +104,8 @@ type alias TagPath a = List a
 {-| Try to find a subDiagram t at the given tag path. If it is found,
 return `Just` the coordinates of its origin relative to the origin of this diagram.
 If it isn't found, return `Nothing`. -}
-getCoords : T.Diagram t a -> TagPath t -> Maybe Point
-getCoords dia path =
+getCoords : TagPath t -> T.Diagram t a -> Maybe Point
+getCoords path dia =
     let
       recurse diag path start = 
         case path of

@@ -66,12 +66,14 @@ toSvg d =
       |> String.join ","
   in
     case d of
-      Tag _ actionSet dia ->
+      Tag tag actionSet dia ->
         --Svg.g
         --  actionSet.click |> Maybe.map (\evtToAct -> )
         --  [ SvgA.onClick (actionSet.click) ]
         --  [toSvg dia]
-        toSvg dia
+        Svg.g
+          [ SvgA.id (toString tag) ]
+          [ toSvg dia ]
 
       Group dias ->
         dias
